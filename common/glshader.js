@@ -94,9 +94,12 @@ class GLShader
             return;
         }
 
-        this.vertexPosition = context.gl.getAttribLocation(this.shaderProgram, "VertexPosition");
         this.projectionMatrix = context.gl.getUniformLocation(this.shaderProgram, "ProjectionMatrix");
         this.modelViewMatrix = context.gl.getUniformLocation(this.shaderProgram, "ModelViewMatrix");
+        
+        this.vertexPosition = context.gl.getAttribLocation(this.shaderProgram, "VertexPosition");
+        this.vertexColor = context.gl.getAttribLocation(this.shaderProgram, "VertexColor");
+        this.vertexUV = context.gl.getAttribLocation(this.shaderProgram, "VertexUV");
     }
 
     bind(context)
@@ -104,5 +107,10 @@ class GLShader
         context.gl.useProgram(this.shaderProgram);
         context.gl.uniformMatrix4fv(this.projectionMatrix, false, context.projectionMatrix);
         context.gl.uniformMatrix4fv(this.modelViewMatrix, false, context.modelViewMatrix);
+
+        // See the Vertex class
+        if(this.vertexPosition != -1) { context.gl.vertexAttribPointer(this.vertexPosition, 3, context.gl.FLOAT, false, 36, 4 * 0); }  // 36 = 9 floats * 4 bytes per float
+        if(this.vertexColor != -1) {    context.gl.vertexAttribPointer(this.vertexColor,    4, context.gl.FLOAT, false, 36, 4 * 3); }
+        if(this.vertexUV != -1) {       context.gl.vertexAttribPointer(this.vertexUV,       2, context.gl.FLOAT, false, 36, 4 * 7); }
     }
 }

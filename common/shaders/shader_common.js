@@ -1,8 +1,10 @@
 const shader_common_vs = `
-    attribute vec4 VertexPosition;
-
     uniform mat4 ModelViewMatrix;
     uniform mat4 ProjectionMatrix;
+
+    attribute vec4 VertexPosition;
+    attribute vec4 VertexColor;
+    attribute vec2 VertexUV;
     
 `;
 
