@@ -1,7 +1,7 @@
 /**
  * 
  */
-class GLContext
+class Context
 {
     /**
      * 
@@ -86,7 +86,7 @@ var glContext;
  */
 function initializeWebGL()
 {
-    glContext = new GLContext("glCanvas");
+    glContext = new Context("glCanvas");
     glContext.setClearColor(0.1, 0.1, 0.2, 1.0);
     glContext.clearBuffers();
 

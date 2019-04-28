@@ -1,13 +1,3 @@
-class Vertex
-{
-    constructor(x, y, z, r, g, b, a, u, v)
-    {
-        this.position = [x, y, z];
-        this.color = [r, g, b, a];
-        this.uv = [u, v]
-    }
-}
-
 class Mesh
 {
     constructor()
@@ -29,7 +19,7 @@ class Mesh
 
     buildVertexBuffer(context)
     {
-        const stride = 9;
+        const stride = Vertex.length();
         var size = this.vertices.length * stride;
 
         var vertexData = new Float32Array(size);
@@ -38,17 +28,21 @@ class Mesh
         {
             var vertex = i / stride;
 
-            vertexData[i + 0] = this.vertices[vertex].position[0];
-            vertexData[i + 1] = this.vertices[vertex].position[1];
-            vertexData[i + 2] = this.vertices[vertex].position[2];
+            vertexData[i + 0]  = this.vertices[vertex].position[0];
+            vertexData[i + 1]  = this.vertices[vertex].position[1];
+            vertexData[i + 2]  = this.vertices[vertex].position[2];
             
-            vertexData[i + 3] = this.vertices[vertex].color[0];
-            vertexData[i + 4] = this.vertices[vertex].color[1];
-            vertexData[i + 5] = this.vertices[vertex].color[2];
-            vertexData[i + 6] = this.vertices[vertex].color[3];
+            vertexData[i + 3]  = this.vertices[vertex].color[0];
+            vertexData[i + 4]  = this.vertices[vertex].color[1];
+            vertexData[i + 5]  = this.vertices[vertex].color[2];
+            vertexData[i + 6]  = this.vertices[vertex].color[3];
+
+            vertexData[i + 7]  = this.vertices[vertex].normal[0];
+            vertexData[i + 8]  = this.vertices[vertex].normal[1];
+            vertexData[i + 9]  = this.vertices[vertex].normal[2];
             
-            vertexData[i + 7] = this.vertices[vertex].uv[0];
-            vertexData[i + 8] = this.vertices[vertex].uv[1];
+            vertexData[i + 10] = this.vertices[vertex].uv[0];
+            vertexData[i + 11] = this.vertices[vertex].uv[1];
         }
 
         context.gl.bufferData(context.gl.ARRAY_BUFFER, vertexData, context.gl.STATIC_DRAW);

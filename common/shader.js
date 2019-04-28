@@ -1,7 +1,7 @@
 /**
  * 
  */
-class GLShader
+class Shader
 {
     constructor(context, vsSource, gsSource, fsSource)
     {
@@ -99,6 +99,7 @@ class GLShader
         
         this.vertexPosition = context.gl.getAttribLocation(this.shaderProgram, "VertexPosition");
         this.vertexColor = context.gl.getAttribLocation(this.shaderProgram, "VertexColor");
+        this.vertexNormal = context.gl.getAttribLocation(this.shaderProgram, "VertexNormal");
         this.vertexUV = context.gl.getAttribLocation(this.shaderProgram, "VertexUV");
     }
 
@@ -108,9 +109,31 @@ class GLShader
         context.gl.uniformMatrix4fv(this.projectionMatrix, false, context.projectionMatrix);
         context.gl.uniformMatrix4fv(this.modelViewMatrix, false, context.modelViewMatrix);
 
+        const vertLength = Vertex.length() * 4;
+
         // See the Vertex class
-        if(this.vertexPosition != -1) { context.gl.vertexAttribPointer(this.vertexPosition, 3, context.gl.FLOAT, false, 36, 4 * 0); }  // 36 = 9 floats * 4 bytes per float
-        if(this.vertexColor != -1) {    context.gl.vertexAttribPointer(this.vertexColor,    4, context.gl.FLOAT, false, 36, 4 * 3); }
-        if(this.vertexUV != -1) {       context.gl.vertexAttribPointer(this.vertexUV,       2, context.gl.FLOAT, false, 36, 4 * 7); }
+        if(this.vertexPosition != -1) 
+        { 
+            context.gl.vertexAttribPointer(this.vertexPosition, 3, context.gl.FLOAT, false, vertLength, 0 * 4);
+            context.gl.enableVertexAttribArray(this.vertexPosition);
+        }
+
+        if(this.vertexColor != -1) 
+        {    
+            context.gl.vertexAttribPointer(this.vertexColor, 4, context.gl.FLOAT, false, vertLength, 4 * 3); 
+            context.gl.enableVertexAttribArray(this.vertexColor);
+        }
+
+        if(this.vertexNormal != -1) 
+        {    
+            context.gl.vertexAttribPointer(this.vertexNormal, 3, context.gl.FLOAT, false, vertLength, 4 * 7); 
+            context.gl.enableVertexAttribArray(this.vertexNormal);
+        }
+
+        if(this.vertexUV != -1) 
+        {       
+            context.gl.vertexAttribPointer(this.vertexUV, 2, context.gl.FLOAT, false, vertLength, 4 * 10);
+            context.gl.enableVertexAttribArray(this.vertexUV);
+        }
     }
 }

@@ -4,6 +4,7 @@ const shader_common_vs = `
 
     attribute vec4 VertexPosition;
     attribute vec4 VertexColor;
+    attribute vec3 VertexNormal;
     attribute vec2 VertexUV;
     
 `;
