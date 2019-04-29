@@ -6,15 +6,68 @@
         <script src="common/shaders/shader_common.js"></script>
         <script src="common/shaders/shader_flat.js"></script>
 
+        <script src="common/utils.js"></script>
         <script src="common/vertex.js"></script>
         <script src="common/context.js"></script>
         <script src="common/shader.js"></script>
+        <script src="common/material.js"></script>
         <script src="common/mesh.js"></script>
         <script src="common/transform.js"></script>
-        <script src="common/sceneobject.js"></script>
         <script src="common/renderer.js"></script>
+        <script src="common/framestats.js"></script>
+        <script src="common/sceneobject.js"></script>
+        <script src="common/camera.js"></script>
+        <script src="common/scene.js"></script>
+
+        <script type="text/javascript">
+            var scene = null;
+
+            function setupScene()
+            {
+                scene = new Scene("glCanvas");
+                scene.setup();
+
+                scene.renderer.camera.clearColor(0.1, 0.1, 0.2);
+                scene.renderer.camera.translate(0.0, 0.0, 50.0);
+                scene.renderer.enableInstancing = false;
+
+                for(let i = 0; i < 10000; ++i)
+                {
+                    let object = new SceneObject(scene.renderer);
+                    object.mesh = "quad";
+                    object.material = "default";
+                    object.translate(GetRandom(-25, 25), GetRandom(-25, 25), GetRandom(-75, 0));
+                    scene.sceneObjects.push(object);
+                }
+
+                scene.start();
+            }
+
+            $(document).ready(function()
+            {
+                setupScene();
+
+                $("#enable_instancing").change(function()
+                {
+                    scene.renderer.enableInstancing = this.checked;
+                });
+
+                $("#randomize").click(function()
+                {
+                    scene.renderer.materials.get("default").setUniformVec4("Color", [GetRandom(0, 1), GetRandom(0, 1), GetRandom(0, 1), 1.0]);
+                });
+            });
+        </script>
     </head>
     <body>
         <canvas id="glCanvas" width="640" height="480"></canvas>
+        <div>
+            Frame: <span id="value_frame">0</span><br/>
+            FPS: <span id="value_fps">0</span><br/>
+            MS: <span id="value_ms">0</span><br/>
+            Draws: <span id="value_drawcalls">0</span><br/>
+            Instancing: <input id="enable_instancing" type="checkbox"><br/>
+            <button id="randomize">randomize</button><br/>
+        </div>
     </body>
 </html>

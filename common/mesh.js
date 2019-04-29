@@ -69,37 +69,3 @@ class Mesh
         context.gl.drawElements(context.gl.TRIANGLES, this.indices.length, context.gl.UNSIGNED_SHORT, 0);
     }
 }
-
-/**
- * 
- */
-class MeshManager
-{
-    meshes = new Map();
-
-    constructor()
-    {
-
-    }
-
-    addMesh(id, mesh)
-    {
-        if(this.meshes.has(id))
-        {
-            return false;
-        }
-        
-        this.meshes.set(id, mesh);
-        return true;
-    }
-
-    getMesh(id)
-    {
-        if(this.meshes.has(id))
-        {
-            return this.meshes.get(id);
-        }
-        
-        return null;
-    }
-}

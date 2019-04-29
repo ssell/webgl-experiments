@@ -19,7 +19,7 @@ class Shader
         }
         
         this.createProgram(context, vs, gs, fs);
-        this.bindLocations(context);
+        this.findProperties(context);
     }
 
     /**
@@ -84,34 +84,47 @@ class Shader
     }
 
     /**
-     * 
+     * Find and the uniforms and attributes defined in all shaders (well, in shader_common).
      * @param {*} gl 
      */
-    bindLocations(context)
+    findProperties(context)
     {
         if(this.shaderProgram === null)
         {
             return;
         }
 
+        this.modelMatrix      = context.gl.getUniformLocation(this.shaderProgram, "ModelMatrix");
+        this.viewMatrix       = context.gl.getUniformLocation(this.shaderProgram, "ViewMatrix");
         this.projectionMatrix = context.gl.getUniformLocation(this.shaderProgram, "ProjectionMatrix");
-        this.modelViewMatrix = context.gl.getUniformLocation(this.shaderProgram, "ModelViewMatrix");
         
         this.vertexPosition = context.gl.getAttribLocation(this.shaderProgram, "VertexPosition");
-        this.vertexColor = context.gl.getAttribLocation(this.shaderProgram, "VertexColor");
-        this.vertexNormal = context.gl.getAttribLocation(this.shaderProgram, "VertexNormal");
-        this.vertexUV = context.gl.getAttribLocation(this.shaderProgram, "VertexUV");
+        this.vertexColor    = context.gl.getAttribLocation(this.shaderProgram, "VertexColor");
+        this.vertexNormal   = context.gl.getAttribLocation(this.shaderProgram, "VertexNormal");
+        this.vertexUV       = context.gl.getAttribLocation(this.shaderProgram, "VertexUV");
     }
 
     bind(context)
     {
         context.gl.useProgram(this.shaderProgram);
+
+        this.bindCommonUniforms(context);
+        this.bindCommonAttributes(context);
+
+        return true;
+    }
+
+    bindCommonUniforms(context)
+    {
+        context.gl.uniformMatrix4fv(this.modelMatrix, false, context.modelMatrix);
+        context.gl.uniformMatrix4fv(this.viewMatrix, false, context.viewMatrix);
         context.gl.uniformMatrix4fv(this.projectionMatrix, false, context.projectionMatrix);
-        context.gl.uniformMatrix4fv(this.modelViewMatrix, false, context.modelViewMatrix);
+    }
 
+    bindCommonAttributes(context)
+    {
         const vertLength = Vertex.length() * 4;
-
-        // See the Vertex class
+        
         if(this.vertexPosition != -1) 
         { 
             context.gl.vertexAttribPointer(this.vertexPosition, 3, context.gl.FLOAT, false, vertLength, 0 * 4);
@@ -135,39 +148,5 @@ class Shader
             context.gl.vertexAttribPointer(this.vertexUV, 2, context.gl.FLOAT, false, vertLength, 4 * 10);
             context.gl.enableVertexAttribArray(this.vertexUV);
         }
-    }
-}
-
-/**
- * 
- */
-class ShaderManager
-{
-    shaders = new Map();
-
-    constructor()
-    {
-
-    }
-
-    addShader(id, mesh)
-    {
-        if(this.shaders.has(id))
-        {
-            return false;
-        }
-        
-        this.shaders.set(id, mesh);
-        return true;
-    }
-
-    getShader(id)
-    {
-        if(this.shaders.has(id))
-        {
-            return this.shaders.get(id);
-        }
-        
-        return null;
     }
 }

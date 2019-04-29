@@ -1,13 +1,19 @@
 const shader_flat_vs = shader_common_vs + `
+    uniform vec4 Color;
+    varying lowp vec4 vColor;
+
     void main()
     {
-        gl_Position = ProjectionMatrix * ModelViewMatrix * VertexPosition;
+        gl_Position = transformPosition();
+        vColor = Color;
     }
 `;
 
 const shader_flat_fs = shader_common_fs + `
+    varying lowp vec4 vColor;
+
     void main()
     {
-        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+        gl_FragColor = vColor;
     }
 `;

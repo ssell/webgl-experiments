@@ -3,90 +3,121 @@ class Renderer
     constructor(canvasId)
     {
         this.context   = new Context(canvasId);
-        this.meshes    = new MeshManager();
-        this.shaders   = new ShaderManager();
-        this.cameraPos = [0.0, 0.0, -10.0];
+        this.meshes    = new Map();
+        this.shaders   = new Map();
+        this.materials = new Map();
+        this.camera    = new Camera(this);
 
-        this.initializeWebGL(canvasId);
+        this.enableInstancing = true;
+
+        this.renderList = []
+        this.renderMap = new Map();
     }
-
-    initializeWebGL(canvasId)
-    {
-        this.context.setClearColor(0.1, 0.1, 0.2, 1.0);
-        this.context.clearBuffers();
-
-        var fov    = 45 * Math.PI / 180;
-        var aspect = this.context.gl.canvas.clientWidth / this.context.gl.canvas.clientHeight;
-        var near   = 0.1;
-        var far    = 100.0;
-
-        this.context.setProjectionPerspective(fov, aspect, near, far);
-        this.context.translate(0.0, 0.0, 0.0);
-    }
-
-    pushTransform(transform)
-    {
-        // This is all wrong.
-        // There needs to be a separate model and view matrix.
-        this.context.translate(
-            transform.position[0],
-            transform.position[1],
-            transform.position[2],
-            true
-        );
-    }
-
-    popTransform()
-    {
-        this.context.translate(
-            this.cameraPos[0],
-            this.cameraPos[1],
-            this.cameraPos[2],
-            true
-        );
-    }
-
-    render(delta, shader, mesh)
-    {
-        shader.bind(this.context);
-        mesh.render(this.context);
-    } 
-}
-
-function buildFlatShader(renderer)
-{
-    shader = new Shader(renderer.context, shader_flat_vs, null, shader_flat_fs);
-    renderer.shaders.addShader("flat", shader);
-}
-
-function buildQuad(renderer)
-{
-    quad = new Mesh();
-
-    quad.vertices.push(new Vertex(-0.5, -0.5, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, -1.0, 0.0, 0.0), 
-                       new Vertex( 0.5, -0.5, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, -1.0, 1.0, 0.0), 
-                       new Vertex( 0.5,  0.5, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, -1.0, 1.0, 1.0),
-                       new Vertex(-0.5,  0.5, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, -1.0, 0.0, 1.0));
-
-    quad.indices.push(0, 1, 2, 
-                      2, 3, 0)
-
-    quad.build(renderer.context);
-
-    renderer.meshes.addMesh("quad", quad);
-}
-
-$(document).ready(function()
-{
-    var renderer = new Renderer("glCanvas");
-
-    buildFlatShader(renderer);
-    buildQuad(renderer);
-
-    var object = new SceneObject(renderer);
-    object.mesh = "quad";
-    object.shader = "flat";
-    object.transform.position = [0.0, 0.0, 0.0];
     
-    object.render(0.0);
-});
+    drawScene(delta)
+    {
+        let drawCalls = 0;
+
+        // Clear the frame buffer and update the view matrix
+        this.context.clearBuffers();
+        this.context.viewMatrix = this.camera.viewMatrix();
+
+        if(this.enableInstancing)
+        {
+            drawCalls = this.drawSceneInstancing(delta);
+        }
+        else
+        {
+            drawCalls = this.drawSceneNoInstancing(delta);
+        }
+
+        // Clear the render map. We do this so that we are ensured
+        // that we are only tracking valid, up-to-date scene objects.
+        this.renderMap.clear();
+
+        return drawCalls;
+    }
+
+    /**
+     * Renders each object individually.
+     * @param {*} delta 
+     */
+    drawSceneNoInstancing(delta)
+    {
+        let drawCalls = 0;
+
+        // Iterate over each collection of material:mesh combinations
+        let renderIter = this.renderMap.keys();
+        let renderEntry = renderIter.next();
+
+        while(!renderEntry.done)
+        {
+            let members  = renderEntry.value.split(":");
+            let material = this.materials.get(members[0]);
+            let mesh     = this.meshes.get(members[1]);
+
+            if((material == null) || (mesh == null))
+            {
+                continue;
+            }
+            
+            // Render the individual model matrices associated with this material:mesh combo
+            let matrices = this.renderMap.get(renderEntry.value);
+
+            for(let i = 0; i < matrices.length; ++i)
+            {
+                this.context.modelMatrix = matrices[i];
+
+                material.bind(this.context);
+                mesh.render(this.context);
+                drawCalls++;
+            }
+
+            renderEntry = renderIter.next();
+        }
+
+        return drawCalls;
+    }
+
+    /**
+     * Renders objects in groups using instancing.
+     * Objects that share the same mesh and material are rendered in a single call.
+     * 
+     * @param {*} delta 
+     */
+    drawSceneInstancing(delta)
+    {
+        let drawCalls = 0;
+
+        return drawCalls;
+    }
+
+    /**
+     * Adds the SceneObject that should be rendered this frame to the renderer.
+     * 
+     * At the end of each render routine, the underlying container of objects to render is cleared.
+     * Because of this, the SceneObject needs to be added to the Renderer for each frame.
+     * 
+     * @param {SceneObject} object 
+     */
+    addRenderObject(object)
+    {
+        // Internally we don't track the actual SceneObject itself but rather
+        // it's rendering related properties. The renderMap uses the concatenation
+        // of the material id and mesh id which then points to a map of model matrices.
+
+        // As such, all objects that use the same material+mesh combination will end
+        // up in the same render bucket.
+
+        let renderId = object.material + ":" + object.mesh;
+
+        if(!this.renderMap.has(renderId))
+        {
+            this.renderMap.set(renderId, [object.modelMatrix()]);
+        }
+        else
+        {
+            this.renderMap.get(renderId).push(object.modelMatrix());
+        }
+    }
+}
