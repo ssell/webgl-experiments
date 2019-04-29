@@ -137,3 +137,37 @@ class Shader
         }
     }
 }
+
+/**
+ * 
+ */
+class ShaderManager
+{
+    shaders = new Map();
+
+    constructor()
+    {
+
+    }
+
+    addShader(id, mesh)
+    {
+        if(this.shaders.has(id))
+        {
+            return false;
+        }
+        
+        this.shaders.set(id, mesh);
+        return true;
+    }
+
+    getShader(id)
+    {
+        if(this.shaders.has(id))
+        {
+            return this.shaders.get(id);
+        }
+        
+        return null;
+    }
+}

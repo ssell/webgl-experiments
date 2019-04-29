@@ -10,13 +10,13 @@ class Context
     constructor(canvasId)
     {
         this.canvas = document.querySelector("#" + canvasId);
-        this.gl = this.canvas.getContext("webgl");
+        this.gl = this.canvas.getContext("webgl2");
 
         if(this.gl === null)
         {
             alert("Unable to initialize WebGL. Your browser or machine may not support it.");
         }
-        
+
         this.gl.clearDepth(1.0);
         this.gl.enable(this.gl.DEPTH_TEST);
         this.gl.depthFunc(this.gl.LEQUAL);
@@ -77,24 +77,4 @@ class Context
     {
         mat4.translate(this.modelViewMatrix, this.modelViewMatrix, [x, y, z]);
     }
-}
-
-var glContext;
-
-/**
- * Creates and initializes the global WebGL Context (glContext).
- */
-function initializeWebGL()
-{
-    glContext = new Context("glCanvas");
-    glContext.setClearColor(0.1, 0.1, 0.2, 1.0);
-    glContext.clearBuffers();
-
-    var fov = 45 * Math.PI / 180;
-    var aspect = glContext.gl.canvas.clientWidth / glContext.gl.canvas.clientHeight;
-    var near = 0.1;
-    var far = 100.0;
-
-    glContext.setProjectionPerspective(fov, aspect, near, far);
-    glContext.translate(0.0, 0.0, 0.0);
 }
