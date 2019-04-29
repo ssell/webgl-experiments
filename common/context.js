@@ -73,8 +73,13 @@ class Context
      * @param {*} y 
      * @param {*} z 
      */
-    translate(x, y, z)
+    translate(x, y, z, reset = false)
     {
+        if(reset == true)
+        {
+            this.modelViewMatrix = mat4.create();
+        }
+
         mat4.translate(this.modelViewMatrix, this.modelViewMatrix, [x, y, z]);
     }
 }

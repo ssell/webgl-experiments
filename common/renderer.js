@@ -2,9 +2,10 @@ class Renderer
 {
     constructor(canvasId)
     {
-        this.context = new Context(canvasId);
-        this.meshes  = new MeshManager();
-        this.shaders = new ShaderManager();
+        this.context   = new Context(canvasId);
+        this.meshes    = new MeshManager();
+        this.shaders   = new ShaderManager();
+        this.cameraPos = [0.0, 0.0, -10.0];
 
         this.initializeWebGL(canvasId);
     }
@@ -23,12 +24,30 @@ class Renderer
         this.context.translate(0.0, 0.0, 0.0);
     }
 
+    pushTransform(transform)
+    {
+        // This is all wrong.
+        // There needs to be a separate model and view matrix.
+        this.context.translate(
+            transform.position[0],
+            transform.position[1],
+            transform.position[2],
+            true
+        );
+    }
+
+    popTransform()
+    {
+        this.context.translate(
+            this.cameraPos[0],
+            this.cameraPos[1],
+            this.cameraPos[2],
+            true
+        );
+    }
+
     render(delta, shader, mesh)
     {
-        this.context.clearBuffers();
-
-        this.context.translate(0.0, 0.0, -15.0);
-        
         shader.bind(this.context);
         mesh.render(this.context);
     } 
@@ -64,5 +83,10 @@ $(document).ready(function()
     buildFlatShader(renderer);
     buildQuad(renderer);
 
-    renderer.render(0.0, renderer.shaders.getShader("flat"), renderer.meshes.getMesh("quad"));;
+    var object = new SceneObject(renderer);
+    object.mesh = "quad";
+    object.shader = "flat";
+    object.transform.position = [0.0, 0.0, 0.0];
+    
+    object.render(0.0);
 });
