@@ -2,16 +2,13 @@ class Renderer
 {
     constructor(canvasId)
     {
+        this.renderList = []
+        this.renderMap = new Map();
         this.context   = new Context(canvasId);
         this.meshes    = new Map();
         this.shaders   = new Map();
         this.materials = new Map();
         this.camera    = new Camera(this);
-
-        this.enableInstancing = true;
-
-        this.renderList = []
-        this.renderMap = new Map();
     }
     
     drawScene(delta)
@@ -22,14 +19,14 @@ class Renderer
         this.context.clearBuffers();
         this.context.viewMatrix = this.camera.viewMatrix();
 
-        if(this.enableInstancing)
-        {
-            drawCalls = this.drawSceneInstancing(delta);
-        }
-        else
-        {
+        //if(this.enableInstancing)
+        //{
+        //    drawCalls = this.drawSceneInstancing(delta);
+        //}
+        //else
+        //{
             drawCalls = this.drawSceneNoInstancing(delta);
-        }
+        //}
 
         // Clear the render map. We do this so that we are ensured
         // that we are only tracking valid, up-to-date scene objects.
@@ -61,14 +58,12 @@ class Renderer
                 continue;
             }
             
-            // Render the individual model matrices associated with this material:mesh combo
-            let matrices = this.renderMap.get(renderEntry.value);
+            // Render the individual objects associated with this material:mesh combo
+            let sceneObjects = this.renderMap.get(renderEntry.value);
 
-            for(let i = 0; i < matrices.length; ++i)
+            for(let i = 0; i < sceneObjects.length; ++i)
             {
-                this.context.modelMatrix = matrices[i];
-
-                material.bind(this.context);
+                material.bind(this.context, sceneObjects[i]);
                 mesh.render(this.context);
                 drawCalls++;
             }
@@ -109,15 +104,38 @@ class Renderer
         // As such, all objects that use the same material+mesh combination will end
         // up in the same render bucket.
 
+        if(object.renderIndex >= 0)
+        {
+            console.warn("Adding render object which already has a valid render index");
+        }
+
         let renderId = object.material + ":" + object.mesh;
 
         if(!this.renderMap.has(renderId))
         {
-            this.renderMap.set(renderId, [object.modelMatrix()]);
+            this.renderMap.set(renderId, [object]);
         }
         else
         {
-            this.renderMap.get(renderId).push(object.modelMatrix());
+            this.renderMap.get(renderId).push(object);
+        }
+
+        object.renderIndex = this.renderMap.length - 1;
+    }
+
+    removeRenderObject(object)
+    {
+        if(object.renderIndex == -1)
+        {
+            return;
+        }
+
+        let renderId = object.material + ":" + object.mesh;
+        
+        if(this.renderMap.has(renderId))
+        {
+            this.renderMap.get(renderId).splice(object.renderIndex, 1);
+            object.renderIndex = -1;
         }
     }
 }

@@ -15,7 +15,9 @@ class Scene
     setup()
     {
         this.buildFlatShader();
-        this.buildFlatMaterial();
+        this.buildFlatInstancedShader();
+        this.buildDefaultMaterial();
+        this.buildDefaultInstancedMaterial();
         this.buildQuadMesh();
     }
 
@@ -26,22 +28,37 @@ class Scene
 
     buildFlatShader()
     {
-        var shader = new Shader(this.renderer.context, shader_flat_vs, null, shader_flat_fs);
+        let shader = new Shader(this.renderer.context, shader_flat_vs, null, shader_flat_fs);
         this.renderer.shaders.set("flat", shader);
     }
 
-    buildFlatMaterial()
+    buildFlatInstancedShader()
     {
-        var material = new Material(this.renderer, "default", "flat");
+        let shader = new Shader(this.renderer.context, shader_flat_vs_instanced, null, shader_flat_fs);
+        this.renderer.shaders.set("flat_instanced", shader);
+    }
 
-        material.setUniformVec4("Color", [1.0, 0.0, 1.0, 1.0]);
+    buildDefaultMaterial()
+    {
+        let material = new Material(this.renderer, "default", "flat");
+
+        material.enableProperty("Color", 4, [1.0, 0.0, 1.0, 1.0],);
 
         this.renderer.materials.set("default", material);
     }
 
+    buildDefaultInstancedMaterial()
+    {
+        let material = new Material(this.renderer, "default_instanced", "flat_instanced", true);
+
+        material.enableProperty("Color", 4, [1.0, 1.0, 1.0, 1.0]);
+
+        this.renderer.materials.set("default_instanced", material);
+    }
+
     buildQuadMesh()
     {
-        var quad = new Mesh();
+        let quad = new Mesh();
 
         quad.vertices.push(new Vertex(-0.5, -0.5, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, -1.0, 0.0, 0.0), 
                            new Vertex( 0.5, -0.5, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, -1.0, 1.0, 0.0), 

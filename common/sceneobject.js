@@ -7,38 +7,37 @@
  */
 class SceneObject
 {
-    _material = "";
+    _mesh = "quad";
+    _material = "default";
 
     constructor(renderer)
     {
-        this.renderer  = renderer;
-        this.transform = new Transform();
-        this.mesh      = "quad";
-        this.material  = "default";
-        this.visible   = true;
+        this.renderer      = renderer;
+        this.renderIndex   = -1;
+        this.transform     = new Transform();
+        this.mesh          = "quad";
+        this.material      = "default";
+        this.visible       = true;
+        this.materialProps = new MaterialPropertyBlock();
     }
 
-    dispose()
+    set mesh(id)
     {
-        material = "";
+        this.renderer.removeRenderObject(this);
+        this._mesh = id;
+        this.renderer.addRenderObject(this);
+    }
+
+    get mesh()
+    {
+        return this._mesh;
     }
 
     set material(id)
     {
-        let prevMaterial = this.renderer.materials.get(this.material);
-        let nextMaterial = this.renderer.materials.get(id);
-
-        if(prevMaterial != null)
-        {
-            prevMaterial.disassociate(this);
-        }
-
-        if(nextMaterial != null)
-        {
-            nextMaterial.associate(this);
-        }
-
+        this.renderer.removeRenderObject(this);
         this._material = id;
+        this.renderer.addRenderObject(this);
     }
 
     get material()
@@ -68,5 +67,16 @@ class SceneObject
         {
             this.renderer.addRenderObject(this);
         }
+    }
+}
+
+class QuadObject extends SceneObject
+{
+    constructor(renderer)
+    {
+        super(renderer);
+
+        //this.material = "default_instanced";
+        this.materialProps.setPropertyVec4("Color", [GetRandom(0, 1), GetRandom(0, 1), GetRandom(0, 1), 1.0]);
     }
 }

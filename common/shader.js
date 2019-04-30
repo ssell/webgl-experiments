@@ -93,8 +93,7 @@ class Shader
         {
             return;
         }
-
-        this.modelMatrix      = context.gl.getUniformLocation(this.shaderProgram, "ModelMatrix");
+        
         this.viewMatrix       = context.gl.getUniformLocation(this.shaderProgram, "ViewMatrix");
         this.projectionMatrix = context.gl.getUniformLocation(this.shaderProgram, "ProjectionMatrix");
         
@@ -116,7 +115,6 @@ class Shader
 
     bindCommonUniforms(context)
     {
-        context.gl.uniformMatrix4fv(this.modelMatrix, false, context.modelMatrix);
         context.gl.uniformMatrix4fv(this.viewMatrix, false, context.viewMatrix);
         context.gl.uniformMatrix4fv(this.projectionMatrix, false, context.projectionMatrix);
     }
