@@ -1,5 +1,9 @@
 /**
+ * Wraps an underlying WebGL shader program composed of the following:
  * 
+ *     - Vertex Shader   (Mandatory)
+ *     - Fragment Shader (Mandatory)
+ *     - Geometry Shader (Optional)
  */
 class Shader
 {

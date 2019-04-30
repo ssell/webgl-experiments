@@ -1,5 +1,6 @@
 /**
- * 
+ * Resposible for retrieving the WebGL context and wrapping
+ * some of the core GL calls. It also houses the common uniforms.
  */
 class Context
 {
@@ -21,7 +22,6 @@ class Context
         this.gl.enable(this.gl.DEPTH_TEST);
         this.gl.depthFunc(this.gl.LEQUAL);
 
-        this.modelMatrix = mat4.create();
         this.viewMatrix = mat4.create();
         this.projectionMatrix = mat4.create();
     }

@@ -1,5 +1,6 @@
 /**
- * 
+ * Represents the combination of a position, scale, and rotation to
+ * fully express the placement and orientation of a SceneObject in a 3D world.
  */
 class Transform
 {

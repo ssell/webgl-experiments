@@ -1,6 +1,6 @@
 /**
  * Implementation of a SceneObject for use as a Camera.
- * The Renderer requires that it has a Camera object associated with it. See Renderer.camera.
+ * The Renderer requires that it has a Camera object associated with it. See `Renderer.camera`.
  */
 class Camera extends SceneObject
 {
