@@ -54,6 +54,7 @@ class Mesh
 
     /**
      * Populates the `vertexBuffer` with the contents of the `vertices` array.
+     * 
      * @param {*} context 
      */
     buildVertexBuffer(context)
@@ -89,6 +90,7 @@ class Mesh
 
     /**
      * Populates the `indexBuffer` with the contents of the `indices` array.
+     * 
      * @param {*} context 
      */
     buildIndexBuffer(context)
@@ -98,6 +100,7 @@ class Mesh
 
     /**
      * Binds the underlying buffers and calls `drawElements` to render them.
+     * 
      * @param {*} context 
      */
     render(context)
@@ -105,5 +108,18 @@ class Mesh
         this.bind(context);
         
         context.gl.drawElements(context.gl.TRIANGLES, this.indices.length, context.gl.UNSIGNED_SHORT, 0);
+    }
+
+    /**
+     * Binds the underlying buffers and calls `drawElementsInstanced` to render them.
+     * 
+     * @param {*} context 
+     * @param {*} instanceCount Number of instances of this mesh to render.
+     */
+    renderInstanced(context, instanceCount)
+    {
+        this.bind(context);
+
+        context.gl.drawElementsInstanced(context.gl.TRIANGLES, this.indices.length, context.gl.UNSIGNED_SHORT, 0, instanceCount);
     }
 }

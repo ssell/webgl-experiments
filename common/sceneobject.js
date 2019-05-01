@@ -18,14 +18,14 @@ class SceneObject
         this.mesh          = "quad";
         this.material      = "default";
         this.visible       = true;
-        this.materialProps = new MaterialPropertyBlock();
+        this.materialProps = new MaterialPropertyBlock(this);
     }
 
     set mesh(id)
     {
-        this.renderer.removeRenderObject(this);
+        //this.renderer.removeRenderObject(this);
         this._mesh = id;
-        this.renderer.addRenderObject(this);
+        //this.renderer.addRenderObject(this);
     }
 
     get mesh()
@@ -35,9 +35,9 @@ class SceneObject
 
     set material(id)
     {
-        this.renderer.removeRenderObject(this);
+        //this.renderer.removeRenderObject(this);
         this._material = id;
-        this.renderer.addRenderObject(this);
+        //this.renderer.addRenderObject(this);
     }
 
     get material()
@@ -65,6 +65,7 @@ class SceneObject
     {
         if(this.visible == true)
         {
+            this.renderIndex = -1;
             this.renderer.addRenderObject(this);
         }
     }
@@ -76,7 +77,7 @@ class QuadObject extends SceneObject
     {
         super(renderer);
 
-        //this.material = "default_instanced";
+        this.material = "default_instanced";
         this.materialProps.setPropertyVec4("Color", [GetRandom(0, 1), GetRandom(0, 1), GetRandom(0, 1), 1.0]);
     }
 }

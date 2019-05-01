@@ -18,31 +18,7 @@ class Renderer
         // Clear the frame buffer and update the view matrix
         this.context.clearBuffers();
         this.context.viewMatrix = this.camera.viewMatrix();
-
-        //if(this.enableInstancing)
-        //{
-        //    drawCalls = this.drawSceneInstancing(delta);
-        //}
-        //else
-        //{
-            drawCalls = this.drawSceneNoInstancing(delta);
-        //}
-
-        // Clear the render map. We do this so that we are ensured
-        // that we are only tracking valid, up-to-date scene objects.
-        this.renderMap.clear();
-
-        return drawCalls;
-    }
-
-    /**
-     * Renders each object individually.
-     * @param {*} delta 
-     */
-    drawSceneNoInstancing(delta)
-    {
-        let drawCalls = 0;
-
+        
         // Iterate over each collection of material:mesh combinations
         let renderIter = this.renderMap.keys();
         let renderEntry = renderIter.next();
@@ -60,31 +36,65 @@ class Renderer
             
             // Render the individual objects associated with this material:mesh combo
             let sceneObjects = this.renderMap.get(renderEntry.value);
-
-            for(let i = 0; i < sceneObjects.length; ++i)
+            
+            if(material.instanced === false)
             {
-                material.bind(this.context, sceneObjects[i]);
-                mesh.render(this.context);
-                drawCalls++;
+                drawCalls += this.drawSceneNoInstancing(delta, sceneObjects, mesh, material);
             }
+            else
+            {
+                drawCalls += this.drawSceneInstancing(delta, sceneObjects, mesh, material);
+            }
+            
 
             renderEntry = renderIter.next();
+        }
+
+        // Clear the render map. We do this so that we are ensured
+        // that we are only tracking valid, up-to-date scene objects.
+        this.clearRenderMap();
+
+        return drawCalls;
+    }
+
+    /**
+     * Renders each object individually.
+     * 
+     * @param {*} delta 
+     */
+    drawSceneNoInstancing(delta, sceneObjects, mesh, material)
+    {
+        let drawCalls = 0;
+
+        for(let i = 0; i < sceneObjects.length; ++i)
+        {
+            material.bind(this.context, sceneObjects[i]);
+            mesh.render(this.context);
+            drawCalls++;
         }
 
         return drawCalls;
     }
 
     /**
-     * Renders objects in groups using instancing.
-     * Objects that share the same mesh and material are rendered in a single call.
+     * Renders the entire collection of SceneObjects in a single instance.
      * 
      * @param {*} delta 
+     * @param {*} sceneObjects 
+     * @param {*} mesh 
+     * @param {*} material 
      */
-    drawSceneInstancing(delta)
+    drawSceneInstancing(delta, sceneObjects, mesh, material)
     {
-        let drawCalls = 0;
+        if(sceneObjects.length == 0)
+        {
+            return 0;
+        }
 
-        return drawCalls;
+        material.bindInstanced(this.context, sceneObjects);
+        mesh.renderInstanced(this.context, sceneObjects.length);
+        
+        return 1;
     }
 
     /**
@@ -104,11 +114,11 @@ class Renderer
         // As such, all objects that use the same material+mesh combination will end
         // up in the same render bucket.
 
-        if(object.renderIndex >= 0)
+        if(object.renderIndex != -1)
         {
-            console.warn("Adding render object which already has a valid render index");
+            console.warn("!");
         }
-
+        
         let renderId = object.material + ":" + object.mesh;
 
         if(!this.renderMap.has(renderId))
@@ -120,7 +130,7 @@ class Renderer
             this.renderMap.get(renderId).push(object);
         }
 
-        object.renderIndex = this.renderMap.length - 1;
+        object.renderIndex = this.renderMap.get(renderId).length - 1;
     }
 
     removeRenderObject(object)
@@ -136,6 +146,18 @@ class Renderer
         {
             this.renderMap.get(renderId).splice(object.renderIndex, 1);
             object.renderIndex = -1;
+        }
+    }
+
+    clearRenderMap()
+    {
+        let renderIter = this.renderMap.keys();
+        let renderEntry = renderIter.next();
+
+        while(!renderEntry.done)
+        {
+            this.renderMap.set(renderEntry.value, []);
+            renderEntry = renderIter.next();
         }
     }
 }

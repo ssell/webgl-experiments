@@ -2,18 +2,19 @@
  * Individual record of an overridable material property.
  * 
  * If a material is instanced then this property is an `attribute`,
- * otherwise it is an `uniform`. The `default` value is used only
+ * otherwise it is a `uniform`. The `default` value is used only
  * if the currently rendered SceneObject does not provide a valid
  * override value in it's `materialProps` member. 
  */
 class MaterialPropertyRecord
 {
-    constructor(name, defaultValue, size, location)
+    constructor(context, name, defaultValue, size, location)
     {
         this.name     = name;
         this.default  = defaultValue;
         this.size     = size;
         this.location = location;
+        this.buffer   = context.gl.createBuffer();
     }
 }
 
@@ -28,7 +29,7 @@ class MaterialPropertyRecord
  * Properties may either resolve to a GLSL `uniform` or to an `attribute`
  * depending on the material type. If a material is instanced, then properties
  * are expected to be represented in the GLSL by an `attribute`. If the material
- * is not instanced then it is expected to be an `uniform`.
+ * is not instanced then it is expected to be a `uniform`.
  * 
  * A property must first be enabled on the material, via `enableProperty`. The
  * value of the property passed to the bound shader will then be based on whether
@@ -65,7 +66,7 @@ class Material
      * Enables the binding of the specified property for the material.
      * 
      * If the material is instanced then the property must match with an `attribute` in the shader.
-     * Otherwise, the property must match with an `uniform` in the shader.
+     * Otherwise, the property must match with a `uniform` in the shader.
      * 
      * If there is no match in the shader, then the property is not used.  Otherwise, there is a match 
      * in the shader, but not in the rendered SceneObject's `materialProps` then the default value provided is used.
@@ -76,11 +77,23 @@ class Material
      */
     enableProperty(name, size, defaultValue)
     {
-        if(this.properties.indexOf(name) === -1)
+        if(this.properties.indexOf(name) != -1)
         {
-            let location = this.renderer.context.gl.getUniformLocation(this.shader.shaderProgram, name);
-            this.properties.push(new MaterialPropertyRecord(name, defaultValue, size, location));
+            return;
         }
+
+        let location = -1;
+
+        if(this.instanced === false)
+        {
+            location = this.renderer.context.gl.getUniformLocation(this.shader.shaderProgram, name);
+        }
+        else
+        {
+            location = this.renderer.context.gl.getAttribLocation(this.shader.shaderProgram, name);
+        }
+
+        this.properties.push(new MaterialPropertyRecord(this.renderer.context, name, defaultValue, size, location));
     }
 
     /**
@@ -172,9 +185,10 @@ class Material
 
     /**
      * Binds the underlying shader as the active shader, and then assigns the defined uniform and attribute properties.
+     * This should be used only for non-instanced materials. For instanced rendering, use `bindInstanced`.
      * 
      * @param {*} context 
-     * @param {*} sceneObject 
+     * @param {*} sceneObject Individual SceneObject which will be rendered with this material.
      */
     bind(context, sceneObject)
     {
@@ -190,9 +204,104 @@ class Material
         }
 
         this.bindUniforms();
-        this.bindProperties(sceneObject);
+        this.bindNonInstancedProperties(sceneObject);
 
         return true;
+    }
+
+    /**
+     * Binds the underlying shader as the active shader, and then assigns the defined uniform and attribute properties.
+     * This should be used only for instanced materials. For non-instanced rendering, use `bind`.
+     * 
+     * This separation is due to the fact that in non-instanced rendering we simply bind the uniforms in this call
+     * and return whether that operation was successful or not.
+     * 
+     * However for instanced rendering (this method) we are responsible for also updating the instaced data buffers
+     * for our shader program.
+     * 
+     * @param {*} context 
+     * @param {*} sceneObjects Array of SceneObjects that will be rendered with this material in this instance.
+     */
+    bindInstanced(context, sceneObjects)
+    {
+        if(this.shader == null)
+        {
+            console.error("Attempting to bind material with undefined shader");
+            return false;
+        }
+
+        if(!this.shader.bind(this.renderer.context))
+        {
+            return false;
+        }
+
+        this.bindUniforms();
+
+        // Naive approach first and then we will optimize...
+
+        // Each property already has a glBuffer allocated for it.
+        // So we need to go through each scene object and build up the data array for it.
+        // Once through all scene objects we can fill the buffer data and then discard the data array.
+        // Then finally we bind the property buffers.
+
+        let propertyCount = this.properties.length;
+        let propertyArrays = [];
+
+        for(let i = 0; i < propertyCount; ++i)
+        {
+            propertyArrays.push([]);
+        }
+
+        // Build up the data arrays
+        for(let i = 0; i < sceneObjects.length; ++i)
+        {
+            let values = sceneObjects[i].materialProps.fetchProperties(this.properties);
+
+            for(let j = 0; j < propertyCount; ++j)
+            {
+                propertyArrays[j].push.apply(propertyArrays[j], values[j]);
+            }
+        }
+
+        // Bind the data to the buffers
+        for(let i = 0; i < propertyCount; ++i)
+        {
+            let property = this.properties[i];
+
+            if(property.location == -1)
+            {
+                continue;
+            }
+
+            let float32Array = Float32Array.from(propertyArrays[i]);
+
+            context.gl.bindBuffer(context.gl.ARRAY_BUFFER, property.buffer);
+            context.gl.bufferData(context.gl.ARRAY_BUFFER, float32Array, context.gl.STATIC_DRAW);
+
+            if(property.size == 16)
+            {
+                context.gl.vertexAttribPointer(property.location + 0, 4, context.gl.FLOAT, false, 64, 0);
+                context.gl.vertexAttribPointer(property.location + 1, 4, context.gl.FLOAT, false, 64, 16);
+                context.gl.vertexAttribPointer(property.location + 2, 4, context.gl.FLOAT, false, 64, 32);
+                context.gl.vertexAttribPointer(property.location + 3, 4, context.gl.FLOAT, false, 64, 48);
+                
+                context.gl.enableVertexAttribArray(property.location + 0);
+                context.gl.enableVertexAttribArray(property.location + 1);
+                context.gl.enableVertexAttribArray(property.location + 2);
+                context.gl.enableVertexAttribArray(property.location + 3);
+
+                context.gl.vertexAttribDivisor(property.location + 0, 1);
+                context.gl.vertexAttribDivisor(property.location + 1, 1);
+                context.gl.vertexAttribDivisor(property.location + 2, 1);
+                context.gl.vertexAttribDivisor(property.location + 3, 1);
+            }
+            else
+            {
+                context.gl.vertexAttribPointer(property.location, property.size, context.gl.FLOAT, false, 0, 0);
+                context.gl.enableVertexAttribArray(property.location);
+                context.gl.vertexAttribDivisor(property.location, 1);
+            }
+        }
     }
 
     /**
@@ -208,27 +317,6 @@ class Material
         {
             this.uniforms.get(uniform.value).bind();
             uniform = uniformIter.next();
-        }
-    }
-
-    /**
-     * Binds the values for either GLSL `uniform` or `attribute` variables,
-     * depending on whether this material is instanced or not.
-     * 
-     * These must be enabled via `enableProperty` and the default value can
-     * be overriden in the SceneObject's `materialProps` member.
-     * 
-     * @param {*} sceneObject 
-     */
-    bindProperties(sceneObject)
-    {
-        if(this.instanced === true)
-        {
-            
-        }
-        else
-        {
-            this.bindNonInstancedProperties(sceneObject);
         }
     }
 
@@ -350,8 +438,9 @@ class MaterialPropertyBlockRecord
  */
 class MaterialPropertyBlock
 {
-    constructor()
+    constructor(sceneObject)
     {
+        this.sceneObject = sceneObject;
         this.properties = new Map();
         this.dirty = true;
     }
@@ -390,5 +479,38 @@ class MaterialPropertyBlock
 
         this.properties.set(name, new MaterialPropertyBlockRecord(name, value, size, type));
         this.dirty = true;
+    }
+
+    getPropertyValue(name, defaultValue)
+    {
+        if(name === "ModelMatrix")
+        {
+            return Array.from(this.sceneObject.modelMatrix());
+        }
+
+        let property = this.properties.get(name);
+
+        if(property === undefined)
+        {
+            return defaultValue;
+        }
+        
+        return property.value;
+    }
+
+
+    fetchProperties(propertyList)
+    {
+        let results = []
+
+        for(let i = 0; i < propertyList.length; ++i)
+        {
+            let property = propertyList[i];
+            let result = this.getPropertyValue(property.name, property.default);
+            
+            results.push(result);
+        }
+
+        return results;
     }
 }
