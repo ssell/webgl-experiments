@@ -25,7 +25,7 @@ class FrameStats
     constructor()
     {
         this.frames = [];
-        this.maxFrames = 30;
+        this.maxFrames = 100;
         this.runningDelta = 0.0;
     }
 

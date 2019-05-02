@@ -2,13 +2,18 @@ class Renderer
 {
     constructor(canvasId)
     {
+        this.defaultMesh              = "quad";
+        this.defaultMaterial          = "default";
+        this.defaultInstancedMaterial = "default_instanced";
+        this.instanceSize             = 1000;
+
         this.renderList = []
-        this.renderMap = new Map();
-        this.context   = new Context(canvasId);
-        this.meshes    = new Map();
-        this.shaders   = new Map();
-        this.materials = new Map();
-        this.camera    = new Camera(this);
+        this.renderMap  = new Map();
+        this.context    = new Context(canvasId);
+        this.meshes     = new Map();
+        this.shaders    = new Map();
+        this.materials  = new Map();
+        this.camera     = null;
     }
     
     drawScene(delta)
@@ -25,9 +30,11 @@ class Renderer
 
         while(!renderEntry.done)
         {
-            let members  = renderEntry.value.split(":");
-            let material = this.materials.get(members[0]);
-            let mesh     = this.meshes.get(members[1]);
+            let members      = renderEntry.value.split(":");
+            let materialName = members[0];
+            let meshName     = members[1];
+            let material     = this.materials.get(materialName);
+            let mesh         = this.meshes.get(meshName);
 
             if((material == null) || (mesh == null))
             {
@@ -43,7 +50,7 @@ class Renderer
             }
             else
             {
-                drawCalls += this.drawSceneInstancing(delta, sceneObjects, mesh, material);
+                drawCalls += this.drawSceneInstancing(delta, sceneObjects, meshName, mesh, material);
             }
             
 
@@ -66,9 +73,14 @@ class Renderer
     {
         let drawCalls = 0;
 
+        if(!material.bind())
+        {
+            return drawCalls;
+        }
+
         for(let i = 0; i < sceneObjects.length; ++i)
         {
-            material.bind(this.context, sceneObjects[i]);
+            material.bindNonInstancedProperties(sceneObjects[i]);
             mesh.render(this.context);
             drawCalls++;
         }
@@ -84,18 +96,31 @@ class Renderer
      * @param {*} mesh 
      * @param {*} material 
      */
-    drawSceneInstancing(delta, sceneObjects, mesh, material)
+    drawSceneInstancing(delta, sceneObjects, meshName, mesh, material)
     {
         if(sceneObjects.length == 0)
         {
             return 0;
         }
 
-        material.bindInstanced(this.context, sceneObjects);
-        mesh.renderInstanced(this.context, sceneObjects.length);
-        material.unbindInstanced(this.context);
+        if(!material.bind())
+        {
+            return 0;
+        }
+
+        let leftToRender = sceneObjects.length;
+        let numInstances = Math.ceil(sceneObjects.length / this.instanceSize);
+
+        for(let i = 0; i < numInstances; ++i)
+        {
+            material.bindInstanced(meshName, i);
+            mesh.renderInstanced(this.context, (leftToRender >= this.instanceSize ? this.instanceSize : leftToRender));
+            material.unbindInstanced(this.context);
+
+            leftToRender -= this.instanceSize;
+        }
         
-        return 1;
+        return numInstances;
     }
 
     /**
@@ -120,7 +145,7 @@ class Renderer
             console.warn("!");
         }
         
-        let renderId = object.material + ":" + object.mesh;
+        let renderId = object.renderable.material + ":" + object.renderable.mesh;
 
         if(!this.renderMap.has(renderId))
         {
@@ -141,7 +166,7 @@ class Renderer
             return;
         }
 
-        let renderId = object.material + ":" + object.mesh;
+        let renderId = object.renderable.material + ":" + object.renderable.mesh;
         
         if(this.renderMap.has(renderId))
         {

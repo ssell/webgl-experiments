@@ -13,13 +13,13 @@ class Camera extends SceneObject
     {
         super(renderer);
 
-        this._aspect = this.renderer.context.gl.canvas.clientWidth / this.renderer.context.gl.canvas.clientHeight;
+        this._aspect = this.renderable.renderer.context.gl.canvas.clientWidth / this.renderable.renderer.context.gl.canvas.clientHeight;
         this.rebuildProjection();
     }
 
     clearColor(r, g, b)
     {
-        this.renderer.context.setClearColor(r, g, b, 1.0);
+        this.renderable.renderer.context.setClearColor(r, g, b, 1.0);
     }
 
     set fieldOfView(value)
@@ -68,7 +68,7 @@ class Camera extends SceneObject
 
     rebuildProjection()
     {
-        this.renderer.context.setProjectionPerspective(this._fov, this._aspect, this._near, this._far);
+        this.renderable.renderer.context.setProjectionPerspective(this._fov, this._aspect, this._near, this._far);
     }
 
     viewMatrix()

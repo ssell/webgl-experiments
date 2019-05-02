@@ -31,9 +31,10 @@
                 scene.renderer.camera.transform.translate(0.0, 0.0, 50.0);
                 scene.renderer.enableInstancing = false;
 
-                for(let i = 0; i < 10000; ++i)
+                for(let i = 0; i < 50000; ++i)
                 {
-                    let object = new QuadObject(scene.renderer);
+                    //let object = new QuadObject(scene.renderer);
+                    let object = new FlashingQuad(scene.renderer);
                     object.transform.translate(GetRandom(-25, 25), GetRandom(-25, 25), GetRandom(-75, 0));
                     scene.sceneObjects.push(object);
                 }
@@ -51,7 +52,15 @@
 
                     for(let i = 0; i < scene.sceneObjects.length; ++i)
                     {
-                        scene.sceneObjects[i].material = material;
+                        scene.sceneObjects[i].renderable.material = material;
+                    }
+                });
+
+                $("#enable_animate").change(function()
+                {
+                    for(let i = 0; i < scene.sceneObjects.length; ++i)
+                    {
+                        scene.sceneObjects[i].animate = this.checked;
                     }
                 });
 
@@ -70,6 +79,7 @@
             MS: <span id="value_ms">0</span><br/>
             Draws: <span id="value_drawcalls">0</span><br/>
             Instancing: <input id="enable_instancing" type="checkbox" checked="checked"><br/>
+            Animate: <input id="enable_animate" type="checkbox" checked="checked"><br/>
             <button id="randomize">randomize</button><br/>
         </div>
     </body>

@@ -1,3 +1,77 @@
+class RendererableComponent
+{
+    constructor(sceneObject, renderer)
+    {
+        this.parent             = sceneObject;
+        this.renderer           = renderer;
+        this.renderIndex        = -1;
+        this._materialName      = this.renderer.defaultMaterial;
+        this._materialReference = this.renderer.materials.get(this._materialName);
+        this._meshName          = this.renderer.defaultMesh;
+        this._meshReference     = this.renderer.meshes.get(this.meshName);
+        this.materialProps      = new MaterialPropertyBlock(this);
+        this.bucketIndex        = -1;
+        this.bucketEntryIndex   = -1;
+        
+        this._materialReference.addRenderableReference(this);
+    }
+
+    set material(newMaterialName)
+    {
+        if(newMaterialName === this._materialName)
+        {
+            return true;
+        }
+
+        if(!this.renderer.materials.has(newMaterialName))
+        {
+            return false;
+        }
+
+        this._materialReference.removeRenderableReference(this);
+        
+        this._materialName = newMaterialName;
+        this._materialReference = this.renderer.materials.get(this._materialName);
+        this._materialReference.addRenderableReference(this);
+
+        return true;
+    }
+
+    get material()
+    {
+        return this._materialName;
+    }
+
+    set mesh(newMeshName)
+    {
+        if(newMeshName === this._meshName)
+        {
+            return true;
+        }
+
+        if(!this.renderer.materials.has(newMeshName))
+        {
+            return false;
+        }
+
+        this._materialReference.removeRenderableReference(this);
+
+        this._meshName = newMeshName;
+        this._meshReference = this.renderer.meshes.get(this._meshName);
+        this._materialReference.addRenderableReference(this);
+    }
+
+    get mesh()
+    {
+        return this._meshName;
+    }
+    
+    update()
+    {
+        this._materialReference.updateRenderableReference(this);
+    }
+}
+
 /**
  * Base representation of an object in the scene. Composed of:
  * 
@@ -7,47 +81,25 @@
  */
 class SceneObject
 {
-    _mesh = "quad";
-    _material = "default";
-
     constructor(renderer)
     {
-        this.renderer      = renderer;
-        this.renderIndex   = -1;
+        this.renderable    = new RendererableComponent(this, renderer);
         this.transform     = new Transform();
-        this.mesh          = "quad";
-        this.material      = "default";
         this.visible       = true;
         this.materialProps = new MaterialPropertyBlock(this);
-    }
-
-    set mesh(id)
-    {
-        this._mesh = id;
-    }
-
-    get mesh()
-    {
-        return this._mesh;
-    }
-
-    set material(id)
-    {
-        this._material = id;
-    }
-
-    get material()
-    {
-        return this._material;
+        this.elapsed       = 0.0;
     }
 
     update(delta)
     {
-        if(this.visible == true)
-        {
-            this.renderIndex = -1;
-            this.renderer.addRenderObject(this);
-        }
+        this.elapsed += delta;
+    }
+
+    preRender()
+    {
+        this.renderIndex = -1;
+        this.renderable.renderer.addRenderObject(this);
+        this.renderable.update();
     }
 }
 
@@ -57,7 +109,33 @@ class QuadObject extends SceneObject
     {
         super(renderer);
 
-        this.material = "default_instanced";
-        this.materialProps.setPropertyVec4("Color", [GetRandom(0, 1), GetRandom(0, 1), GetRandom(0, 1), 1.0]);
+        this.renderable.material = this.renderable.renderer.defaultInstancedMaterial;
+        this.renderable.materialProps.setPropertyVec4("Color", [GetRandom(0, 1), GetRandom(0, 1), GetRandom(0, 1), 1.0]);
+    }
+}
+
+class FlashingQuad extends QuadObject
+{
+    constructor(renderer, colorA = [0.0, 1.0, 0.0], colorB = [0.0, 0.0, 1.0])
+    {
+        super(renderer);
+
+        this.colorA  = colorA;
+        this.colorB  = colorB;
+        this.animate = true;
+    }
+
+    update(delta)
+    {
+        super.update(delta);
+        //this.renderable.materialProps.dirty = true;
+
+        if(!this.animate)
+        {
+            return;
+        }
+
+        const color = Lerp3(this.colorA, this.colorB, this.elapsed % 1.0);
+        this.renderable.materialProps.setPropertyVec4("Color", [color[0], color[1], color[2], 1.0]);
     }
 }

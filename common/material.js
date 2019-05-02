@@ -22,7 +22,7 @@ class PropertyBucket
 
         if(this.dirty === true)
         {
-            context.gl.bufferData(context.gl.ARRAY_BUFFER, this.dataBuffer, context.gl.STATIC_DRAW);
+            context.gl.bufferData(context.gl.ARRAY_BUFFER, this.entryData, context.gl.STATIC_DRAW);
             this.dirty = false;
         }
     }
@@ -46,9 +46,15 @@ class PropertyBucket
      */
     set(entryIndex, value)
     {
+        // Note we manually set the values as using the provided Float32Array.set()
+        // method was found to be significantly slower (up to 39%!). See below:
+        // https://jsperf.com/float32array-performance-set/1
+
+        let start = (entryIndex * this.entrySize);
+        
         for(let i = 0; i < this.entrySize; ++i)
         {
-            this.entryData[entryIndex + i] = value[i];
+            this.entryData[start + i] = value[i];
         }
 
         this.dirty = true;
@@ -95,6 +101,7 @@ class PropertyBucket
             this.entryData[i - this.entrySize] = this.entryData[i];
         }
 
+        this.entryCount--;
         this.dirty = true;
     }
 
@@ -115,33 +122,95 @@ class PropertyBucket
     add(value)
     {
         // Set the value to the next open index
-        set(this.entryCount++, value);
+        this.set(this.entryCount++, value);
     }
 }
 
 class MaterialBucketHolder
 {
-    constructor(context, properties, maxEntriesPerBucket)
+    constructor(material)
     {
-        this.context = context;
-        this.properties = properties;
-        this.propertyBuckets = new Map();                 // [property name] = [ bucket0, bucket1, bucket2, ...]
-        this.propertyBuckets = [];                        // [propertyBlock.bucketIndex][propertyBlock.bucketEntryIndex] = propertyBlock
-        this.maxEntriesPerBucket = maxEntriesPerBucket;
+        this.parent              = material;
+        this.context             = this.parent.renderer.context;
+        this.properties          = this.parent.properties;
+        this.propertyBuckets     = [];    // [property index] = [ bucket0, bucket1, bucket2, ...]
+        this.renderables         = [];    // [propertyBlock.bucketIndex][propertyBlock.bucketEntryIndex] = propertyBlock
+        this.maxEntriesPerBucket = this.parent.renderer.instanceSize;
 
         // Add the initial bucket
         this.addBucket();
     }
 
-    bind()
+    clone()
     {
 
     }
 
-    add(propertyBlock)
+    bind(instanceIndex)
+    {
+        for(let i = 0; i < this.properties.length; ++i)
+        {
+            let property = this.properties[i];
+            let buckets = this.propertyBuckets[i];
+
+            if(buckets.length <= instanceIndex)
+            {
+                break;
+            }
+
+            // Bind the individual property data buffer to the active ARRAY_BUFFER
+            buckets[instanceIndex].bind(this.context);
+
+            // Set the attribute pointers
+            switch(property.size)
+            {
+                case 1:    // float
+                case 2:    // vec2
+                case 3:    // vec3
+                case 4:    // vec4
+                    this.context.gl.vertexAttribPointer(property.location, property.size, this.context.gl.FLOAT, false, 0, 0);
+                    this.context.gl.enableVertexAttribArray(property.location);
+                    this.context.gl.vertexAttribDivisor(property.location, 1);
+                    break;
+
+                case 9:    // mat3
+                    this.context.gl.vertexAttribPointer(property.location + 0, 4, this.context.gl.FLOAT, false, 36, 0);     // 3 columns, 12 bytes per column
+                    this.context.gl.vertexAttribPointer(property.location + 1, 4, this.context.gl.FLOAT, false, 36, 12);
+                    this.context.gl.vertexAttribPointer(property.location + 2, 4, this.context.gl.FLOAT, false, 36, 24);
+                    
+                    this.context.gl.enableVertexAttribArray(property.location + 0);
+                    this.context.gl.enableVertexAttribArray(property.location + 1);
+                    this.context.gl.enableVertexAttribArray(property.location + 2);
+
+                    this.context.gl.vertexAttribDivisor(property.location + 0, 1);
+                    this.context.gl.vertexAttribDivisor(property.location + 1, 1);
+                    this.context.gl.vertexAttribDivisor(property.location + 2, 1);
+                    break;
+
+                case 16:   // mat4
+                    this.context.gl.vertexAttribPointer(property.location + 0, 4, this.context.gl.FLOAT, false, 64, 0);     // 4 columns, 16 bytes per column
+                    this.context.gl.vertexAttribPointer(property.location + 1, 4, this.context.gl.FLOAT, false, 64, 16);
+                    this.context.gl.vertexAttribPointer(property.location + 2, 4, this.context.gl.FLOAT, false, 64, 32);
+                    this.context.gl.vertexAttribPointer(property.location + 3, 4, this.context.gl.FLOAT, false, 64, 48);
+                    
+                    this.context.gl.enableVertexAttribArray(property.location + 0);
+                    this.context.gl.enableVertexAttribArray(property.location + 1);
+                    this.context.gl.enableVertexAttribArray(property.location + 2);
+                    this.context.gl.enableVertexAttribArray(property.location + 3);
+
+                    this.context.gl.vertexAttribDivisor(property.location + 0, 1);
+                    this.context.gl.vertexAttribDivisor(property.location + 1, 1);
+                    this.context.gl.vertexAttribDivisor(property.location + 2, 1);
+                    this.context.gl.vertexAttribDivisor(property.location + 3, 1);
+                    break;
+            }
+        }
+    }
+
+    add(renderable)
     {
         let bucketIndex = -1;
-        let checkBuckets = this.propertyBuckets.get("ModelMatrix");
+        let checkBuckets = this.propertyBuckets[0];
 
         // Find the first bucket with free space
         for(let i = 0; i < checkBuckets.length; ++i)
@@ -164,8 +233,8 @@ class MaterialBucketHolder
         for(let i = 0; i < this.properties.length; ++i)
         {
             let property = this.properties[i];
-            let value = propertyBlock.getPropertyValue(property.name, property.default);
-            let bucket = this.propertyBuckets.get(property.name)[bucketIndex];
+            let value = renderable.materialProps.getPropertyValue(property.name, property.default);
+            let bucket = this.propertyBuckets[i][bucketIndex];
 
             if(value.length != bucket.entrySize)
             {
@@ -175,19 +244,19 @@ class MaterialBucketHolder
 
             if(i === 0)
             {
-                propertyBlock.bucketEntryIndex = bucket.entryCount;
+                renderable.bucketEntryIndex = bucket.entryCount;
             }
 
             bucket.add(value);
         }
 
         // Update the property block's local record of where it resides
-        propertyBlock.dirty            = false;
-        propertyBlock.bucketIndex      = bucketIndex;
-        propertyBlock.bucketEntryIndex = this.propertyBlocks[bucketIndex].length;
+        renderable.materialProps.dirty = false;
+        renderable.bucketIndex         = bucketIndex;
+        renderable.bucketEntryIndex    = this.renderables[bucketIndex].length;
         
         // Update the holder's record of where the property block resides
-        this.propertyBlocks[propertyBlock.bucketIndex].push(propertyBlock);
+        this.renderables[renderable.bucketIndex].push(renderable);
     }
 
     addBucket()
@@ -195,51 +264,104 @@ class MaterialBucketHolder
         // Create a new bucket for each property
         for(let i = 0; i < this.properties.length; ++i)
         {
-            this.propertyBuckets.get(this.properties[i].name).push(new PropertyBucket(this.context, this.properties[i].size, this.maxEntriesPerBucket));
+            let property = this.properties[i];
+            this.addBucketForProperty(property, i);
         }
 
         // Create a new array of property blocks for this bucket
-        this.propertyBlocks.push([]);
+        this.renderables.push([]);
     }
 
-    remove(propertyBlock)
+    addBucketForProperty(property, index)
+    {
+        let buckets = [];
+            
+        // If this is the first bucket for the specified property create the map entry
+        if(this.propertyBuckets.length <= index)
+        {
+            this.propertyBuckets.push([]);
+            buckets = this.propertyBuckets[index];
+        }
+        else
+        {
+            buckets = this.propertyBuckets[index];
+        }
+
+        // Add the new bucket
+        let bucket = new PropertyBucket(this.context, property.size, this.maxEntriesPerBucket);
+        buckets.push(bucket);
+
+        return bucket;
+    }
+
+    /**
+     * Adds a new property. 
+     * 
+     * This involves creating the same number of buckets as are present in the other properties, 
+     * and then filling the new buckets with data from the tracked renderables.
+     * 
+     * @param {*} property 
+     */
+    addProperty(property)
+    {
+        for(let bucketIndex = 0; bucketIndex < this.renderables.length; ++bucketIndex)
+        {
+            let propertyIndex = this.properties.length - 1; // The property has already been added to the parent
+                                                            // material's property array. So reference the last index.
+
+            let bucket = this.addBucketForProperty(property, propertyIndex);
+
+            // Add an entry for each tracked renderable with the same bucket index
+            for(let bucketEntryIndex = 0; bucketEntryIndex < this.renderables[bucketIndex].length; ++bucketEntryIndex)
+            {
+                let renderable = this.renderables[bucketIndex][bucketEntryIndex];
+                let value = renderable.materialProps.getPropertyValue(property.name, property.default);
+
+                bucket.set(bucketEntryIndex, value);
+            }
+        }
+    }
+
+    remove(renderable)
     {
         // Remove the property values from each affected bucket
         for(let i = 0; i < this.properties.length; ++i)
         {
-            this.propertyBuckets.get(this.properties[i].name)[propertyBlock.bucketIndex].remove(propertyBlock.bucketEntryIndex);
+            let bucket = this.propertyBuckets[i][renderable.bucketIndex];
+            bucket.remove(renderable.bucketEntryIndex);
         }
 
         // Remove the property block from the holder's record of where it resides
-        this.propertyBlocks[propertyBlock.bucketIndex].splice(propertyBlock.bucketEntryIndex, 1);
+        this.renderables[renderable.bucketIndex].splice(renderable.bucketEntryIndex, 1);
 
         // Update property blocks that were shifted
-        for(let i = propertyBlock.bucketEntryIndex; i < this.propertyBlocks[propertyBlock.bucketIndex].length; ++i)
+        for(let i = renderable.bucketEntryIndex; i < this.renderables[renderable.bucketIndex].length; ++i)
         {
-            this.propertyBlocks[propertyBlock.bucketIndex][i].bucketEntryIndex = i;
+            this.renderables[renderable.bucketIndex][i].bucketEntryIndex = i;
         }
 
         // Update the removed property block
-        propertyBlock.bucketIndex      = -1;
-        propertyBlock.bucketEntryIndex = -1;
+        renderable.bucketIndex      = -1;
+        renderable.bucketEntryIndex = -1;
     }
 
-    update(propertyBlock)
+    update(renderable)
     {
-        if(propertyBlock.dirty === false)
+        if(renderable.materialProps.dirty === false)
         {
             return;
         }
 
         for(let i = 0; i < this.properties.length; ++i)
         {
-            let value = propertyBlock.getPropertyValue(this.properties[i].name, this.properties[i].default);
-            let bucket = this.propertyBuckets.get(this.properties[i].name)[propertyBlock.bucketIndex];
+            // TODO this getPropertyValue is the difference between >88ms and <31ms !
+            let value = renderable.materialProps.getPropertyValue(this.properties[i].name, this.properties[i].default);
+            let bucket = this.propertyBuckets[i][renderable.bucketIndex];
 
-            bucket.set(propertyBlock.bucketEntryIndex, value);
+            bucket.set(renderable.bucketEntryIndex, value);
         }
 
-        propertyBlock.dirty = false;
+        renderable.materialProps.dirty = false;
     }
 }
 
@@ -296,15 +418,89 @@ class Material
 {
     constructor(renderer, materialName, shaderName, instanced = false)
     {
-        this.renderer   = renderer;
-        this.name       = materialName;
-        this.shader     = renderer.shaders.get(shaderName);
-        this.instanced  = instanced;
-        this.uniforms   = new Map();
-        this.references = 0;
-        this.properties = [];
-
+        this.renderer        = renderer;
+        this.name            = materialName;
+        this.shader          = renderer.shaders.get(shaderName);
+        this._instanced      = instanced;
+        this.uniforms        = new Map();
+        this.references      = 0;
+        this.properties      = [];
+        this.propertyBuckets = new Map();
+        
+        this.addPropertyBucket(this.renderer.defaultMesh);
         this.enableProperty("ModelMatrix", 16, mat4.create());
+    }
+
+    get instanced()
+    {
+        return this._instanced;
+    }
+
+    addPropertyBucket(meshName)
+    {
+        if(this.propertyBuckets.has(meshName))
+        {
+            return;
+        }
+
+        this.propertyBuckets.set(meshName, new MaterialBucketHolder(this));
+    }
+
+    addPropertyBucketProperty(property)
+    {
+        let propertyBucketIter = this.propertyBuckets.keys();
+        let propertyBucketEntry = propertyBucketIter.next();
+
+        // So for each MaterialPropertyHolder we have (one for each used mesh)
+        while(!propertyBucketEntry.done)
+        {
+            // Add the new property to it
+            let propertyBucket = this.propertyBuckets.get(propertyBucketEntry.value);
+            propertyBucket.addProperty(property);
+            propertyBucketEntry = propertyBucketIter.next();
+        }
+    }
+
+    addRenderableReference(renderable)
+    {
+        if(!this.instanced)
+        {
+            return;
+        }
+
+        this.addPropertyBucket(renderable.mesh);
+        this.propertyBuckets.get(renderable.mesh).add(renderable);
+    }
+
+    removeRenderableReference(renderable)
+    {
+        if(!this.instanced)
+        {
+            return;
+        }
+
+        if(!this.propertyBuckets.has(renderable.mesh))
+        {
+            return;
+        }
+
+        this.propertyBuckets.get(renderable.mesh).remove(renderable);
+    }
+
+    updateRenderableReference(renderable)
+    {
+        if(!this.instanced)
+        {
+            return;
+        }
+        
+        if(!renderable.materialProps.dirty)
+        {
+            return;
+        }
+
+        this.addPropertyBucket(renderable.mesh);
+        this.propertyBuckets.get(renderable.mesh).update(renderable);
     }
 
     /**
@@ -329,16 +525,23 @@ class Material
 
         let location = -1;
 
-        if(this.instanced === false)
+        if(!this.instanced)
         {
             location = this.renderer.context.gl.getUniformLocation(this.shader.shaderProgram, name);
         }
         else
         {
             location = this.renderer.context.gl.getAttribLocation(this.shader.shaderProgram, name);
+            
         }
 
-        this.properties.push(new MaterialPropertyRecord(this.renderer.context, name, defaultValue, size, location));
+        let property = new MaterialPropertyRecord(this.renderer.context, name, defaultValue, size, location);
+        this.properties.push(property);
+        
+        if(this.instanced)
+        {
+            this.addPropertyBucketProperty(property);
+        }
     }
 
     /**
@@ -420,11 +623,6 @@ class Material
      */
     setUniform(name, value, size, type)
     {
-        if(this.uniforms.has(name))
-        {
-            this.uniforms.delete(name);
-        }
-
         this.uniforms.set(name, new MaterialPropertyUniform(this.shader, name, value, type, size, this.renderer.context));
     }
 
@@ -435,7 +633,7 @@ class Material
      * @param {*} context 
      * @param {*} sceneObject Individual SceneObject which will be rendered with this material.
      */
-    bind(context, sceneObject)
+    bind()
     {
         if(this.shader == null)
         {
@@ -449,9 +647,20 @@ class Material
         }
 
         this.bindUniforms();
-        this.bindNonInstancedProperties(sceneObject);
 
         return true;
+    }
+
+    bindInstanced(meshName, instanceIndex)
+    {
+        let propertyBucket = this.propertyBuckets.get(meshName);
+
+        if(propertyBucket === undefined)
+        {
+            return false;
+        }
+
+        propertyBucket.bind(instanceIndex);
     }
 
     /**
@@ -467,7 +676,7 @@ class Material
      * @param {*} context 
      * @param {*} sceneObjects Array of SceneObjects that will be rendered with this material in this instance.
      */
-    bindInstanced(context, sceneObjects)
+    bindInstancedOld(context, sceneObjects)
     {
         if(this.shader == null)
         {
@@ -500,7 +709,7 @@ class Material
         // Build up the data arrays
         for(let i = 0; i < sceneObjects.length; ++i)
         {
-            let values = sceneObjects[i].materialProps.fetchProperties(this.properties);
+            let values = sceneObjects[i].renderable.materialProps.fetchProperties(this.properties);
 
             for(let j = 0; j < propertyCount; ++j)
             {
@@ -619,9 +828,9 @@ class Material
             {
                 value = sceneObject.transform.modelMatrix;
             }
-            else if(sceneObject.materialProps.properties.has(record.name))
+            else if(sceneObject.renderable.materialProps.properties.has(record.name))
             {
-                value = sceneObject.materialProps.properties.get(record.name).value;  
+                value = sceneObject.renderable.materialProps.properties.get(record.name).value;  
             }
 
             switch(record.size)
@@ -721,13 +930,11 @@ class MaterialPropertyBlockRecord
  */
 class MaterialPropertyBlock
 {
-    constructor(sceneObject)
+    constructor(renderableComponent)
     {
-        this.sceneObject = sceneObject;
-        this.properties = new Map();
-        this.dirty = true;
-        this.bucketIndex = -1;
-        this.bucketEntryIndex = -1;
+        this.parent           = renderableComponent;
+        this.properties       = new Map();
+        this.dirty            = true;
     }
 
     setPropertyFloat(name, value)
@@ -757,11 +964,8 @@ class MaterialPropertyBlock
 
     setProperty(name, value, size, type)
     {
-        if(this.properties.has(name))
-        {
-            this.properties.delete(name);
-        }
-
+        // TODO: Optimize this and save up to 6ms per frame (aka stop using a
+        // string indexed map which is 99% slower than an integer indexed array).
         this.properties.set(name, new MaterialPropertyBlockRecord(name, value, size, type));
         this.dirty = true;
     }
@@ -770,9 +974,14 @@ class MaterialPropertyBlock
     {
         if(name === "ModelMatrix")
         {
-            return Array.from(this.sceneObject.transform.modelMatrix);
+            // Left as a reminder to myself: don't do this, this is super duper slow.
+            // Like difference between ~175ms per frame and ~45ms per frame for 50,000 objects.
+            //return Array.from(this.parent.parent.transform.modelMatrix);
+            return this.parent.parent.transform.modelMatrix;
         }
-
+        
+        // TODO potential ~2ms improvement over 50,000 objects
+        // Combined for potential ~8ms improvement with the setProperty TODO change above
         let property = this.properties.get(name);
 
         if(property === undefined)

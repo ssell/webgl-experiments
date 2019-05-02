@@ -19,6 +19,8 @@ class Scene
         this.buildDefaultMaterial();
         this.buildDefaultInstancedMaterial();
         this.buildQuadMesh();
+
+        this.renderer.camera = new Camera(this.renderer); 
     }
 
     start()
@@ -89,6 +91,14 @@ class Scene
         {
             var sceneObject = this.sceneObjects[i];
             sceneObject.update(this.deltaTime);
+        }
+
+        for(var i = 0; i < this.sceneObjects.length; ++i)
+        {
+            if(this.sceneObjects[i].visible)
+            {
+                this.sceneObjects[i].preRender();
+            }
         }
 
         var drawCalls = this.renderer.drawScene(this.deltaTime);
