@@ -93,6 +93,7 @@ class Renderer
 
         material.bindInstanced(this.context, sceneObjects);
         mesh.renderInstanced(this.context, sceneObjects.length);
+        material.unbindInstanced(this.context);
         
         return 1;
     }

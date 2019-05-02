@@ -28,15 +28,13 @@
                 scene.setup();
 
                 scene.renderer.camera.clearColor(0.1, 0.1, 0.2);
-                scene.renderer.camera.translate(0.0, 0.0, 50.0);
+                scene.renderer.camera.transform.translate(0.0, 0.0, 50.0);
                 scene.renderer.enableInstancing = false;
 
                 for(let i = 0; i < 10000; ++i)
                 {
                     let object = new QuadObject(scene.renderer);
-                    //object.mesh = "quad";
-                    //object.material = "default";
-                    object.translate(GetRandom(-25, 25), GetRandom(-25, 25), GetRandom(-75, 0));
+                    object.transform.translate(GetRandom(-25, 25), GetRandom(-25, 25), GetRandom(-75, 0));
                     scene.sceneObjects.push(object);
                 }
 
@@ -49,7 +47,12 @@
 
                 $("#enable_instancing").change(function()
                 {
-                    scene.renderer.enableInstancing = this.checked;
+                    let material = (this.checked === true ? "default_instanced" : "default");
+
+                    for(let i = 0; i < scene.sceneObjects.length; ++i)
+                    {
+                        scene.sceneObjects[i].material = material;
+                    }
                 });
 
                 $("#randomize").click(function()
@@ -66,7 +69,7 @@
             FPS: <span id="value_fps">0</span><br/>
             MS: <span id="value_ms">0</span><br/>
             Draws: <span id="value_drawcalls">0</span><br/>
-            Instancing: <input id="enable_instancing" type="checkbox"><br/>
+            Instancing: <input id="enable_instancing" type="checkbox" checked="checked"><br/>
             <button id="randomize">randomize</button><br/>
         </div>
     </body>

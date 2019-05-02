@@ -73,7 +73,7 @@ class Camera extends SceneObject
 
     viewMatrix()
     {
-        var view = this.modelMatrix();
+        var view = Float32Array.from(this.transform.modelMatrix);
 
         mat4.invert(view, view);
 

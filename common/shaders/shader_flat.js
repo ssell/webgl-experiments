@@ -9,15 +9,6 @@ const shader_flat_vs = shader_common_vs + `
     }
 `;
 
-const shader_flat_fs = shader_common_fs + `
-    varying lowp vec4 vColor;
-
-    void main()
-    {
-        gl_FragColor = vColor;
-    }
-`;
-
 const shader_flat_vs_instanced = shader_common_vs_instanced + `
     attribute vec4 Color;
     varying lowp vec4 vColor;
@@ -26,5 +17,14 @@ const shader_flat_vs_instanced = shader_common_vs_instanced + `
     {
         gl_Position = transformPosition();
         vColor = Color;
+    }
+`;
+
+const shader_flat_fs = shader_common_fs + `
+    varying lowp vec4 vColor;
+
+    void main()
+    {
+        gl_FragColor = vColor;
     }
 `;

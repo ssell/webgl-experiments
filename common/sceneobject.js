@@ -23,9 +23,7 @@ class SceneObject
 
     set mesh(id)
     {
-        //this.renderer.removeRenderObject(this);
         this._mesh = id;
-        //this.renderer.addRenderObject(this);
     }
 
     get mesh()
@@ -35,30 +33,12 @@ class SceneObject
 
     set material(id)
     {
-        //this.renderer.removeRenderObject(this);
         this._material = id;
-        //this.renderer.addRenderObject(this);
     }
 
     get material()
     {
         return this._material;
-    }
-
-    translate(x, y, z)
-    {
-        this.transform.position[0] += x;
-        this.transform.position[1] += y;
-        this.transform.position[2] += z;
-    }
-
-    modelMatrix()
-    {
-        var model = mat4.create();
-
-        mat4.translate(model, model, this.transform.position);
-
-        return model;
     }
 
     update(delta)
