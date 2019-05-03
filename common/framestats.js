@@ -24,13 +24,28 @@ class FrameStats
 {
     constructor()
     {
-        this.frames = [];
-        this.maxFrames = 100;
+        this.frames       = [];
+        this.maxFrames    = 50;
         this.runningDelta = 0.0;
+        this.delayStart   = 2;
+    }
+
+    flush()
+    {
+        this.frames       = [];
+        this.runningDelta = 0.0;
+        this.delayStart   = 2;
     }
 
     addFrame(delta, drawCalls)
     {
+        if(this.delayStart > 0)
+        {
+            // Wait a few frames before recording as the first frame will always be extra long due to scene creation
+            this.delayStart--;
+            return;
+        }
+
         var frame = new Frame();
 
         if(this.frames.length > 0)

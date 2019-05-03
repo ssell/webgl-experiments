@@ -29,3 +29,24 @@ function Lerp3(from, to, s)
 {
     return [Lerp1(from[0], to[0], s), Lerp1(from[1], to[1], s), Lerp1(from[2], to[2], s)];
 }
+
+class Utils
+{
+    /**
+     * Merges the value of `a` into `b`.
+     * 
+     * @param {*} a 
+     * @param {*} b 
+     */
+    static mergeArrays(a, b)
+    {
+        let result = b.slice();
+
+        for(let i = 0; (i < a.length) && (i < b.length); ++i)
+        {
+            result[i] = a[i];
+        }
+
+        return result;
+    }
+}

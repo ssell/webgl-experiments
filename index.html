@@ -54,6 +54,8 @@
                     {
                         scene.sceneObjects[i].renderable.material = material;
                     }
+
+                    scene.frameStats.flush();
                 });
 
                 $("#enable_animate").change(function()
@@ -62,6 +64,8 @@
                     {
                         scene.sceneObjects[i].animate = this.checked;
                     }
+
+                    scene.frameStats.flush();
                 });
 
                 $("#randomize").click(function()

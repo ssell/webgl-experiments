@@ -33,6 +33,7 @@ class RendererableComponent
         this._materialName = newMaterialName;
         this._materialReference = this.renderer.materials.get(this._materialName);
         this._materialReference.addRenderableReference(this);
+        this.materialProps.map();
 
         return true;
     }
@@ -83,8 +84,8 @@ class SceneObject
 {
     constructor(renderer)
     {
-        this.renderable    = new RendererableComponent(this, renderer);
         this.transform     = new Transform();
+        this.renderable    = new RendererableComponent(this, renderer);
         this.visible       = true;
         this.materialProps = new MaterialPropertyBlock(this);
         this.elapsed       = 0.0;
@@ -99,6 +100,12 @@ class SceneObject
     {
         this.renderIndex = -1;
         this.renderable.renderer.addRenderObject(this);
+
+        if(this.transform.mmDirty === true)
+        {
+            this.renderable.materialProps.setProperty(0, this.transform.modelMatrix);
+        }
+
         this.renderable.update();
     }
 }
@@ -110,7 +117,8 @@ class QuadObject extends SceneObject
         super(renderer);
 
         this.renderable.material = this.renderable.renderer.defaultInstancedMaterial;
-        this.renderable.materialProps.setPropertyVec4("Color", [GetRandom(0, 1), GetRandom(0, 1), GetRandom(0, 1), 1.0]);
+        this.propColor = this.renderable.materialProps.getPropertyIndex("Color");
+        this.renderable.materialProps.setProperty(this.propColor, [GetRandom(0, 1), GetRandom(0, 1), GetRandom(0, 1), 1.0]);
     }
 }
 
@@ -136,6 +144,6 @@ class FlashingQuad extends QuadObject
         }
 
         const color = Lerp3(this.colorA, this.colorB, this.elapsed % 1.0);
-        this.renderable.materialProps.setPropertyVec4("Color", [color[0], color[1], color[2], 1.0]);
+        this.renderable.materialProps.setProperty(this.propColor, [color[0], color[1], color[2], 1.0]);
     }
 }

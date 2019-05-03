@@ -233,7 +233,7 @@ class MaterialBucketHolder
         for(let i = 0; i < this.properties.length; ++i)
         {
             let property = this.properties[i];
-            let value = renderable.materialProps.getPropertyValue(property.name, property.default);
+            let value = renderable.materialProps.getPropertyValue(i, property.default);
             let bucket = this.propertyBuckets[i][bucketIndex];
 
             if(value.length != bucket.entrySize)
@@ -315,7 +315,7 @@ class MaterialBucketHolder
             for(let bucketEntryIndex = 0; bucketEntryIndex < this.renderables[bucketIndex].length; ++bucketEntryIndex)
             {
                 let renderable = this.renderables[bucketIndex][bucketEntryIndex];
-                let value = renderable.materialProps.getPropertyValue(property.name, property.default);
+                let value = renderable.materialProps.getPropertyValue(propertyIndex, property.default);
 
                 bucket.set(bucketEntryIndex, value);
             }
@@ -354,9 +354,9 @@ class MaterialBucketHolder
 
         for(let i = 0; i < this.properties.length; ++i)
         {
-            // TODO this getPropertyValue is the difference between >88ms and <31ms !
-            let value = renderable.materialProps.getPropertyValue(this.properties[i].name, this.properties[i].default);
-            let bucket = this.propertyBuckets[i][renderable.bucketIndex];
+            let property = this.properties[i];
+            let value    = renderable.materialProps.getPropertyValue(i, property.default);
+            let bucket   = this.propertyBuckets[i][renderable.bucketIndex];
 
             bucket.set(renderable.bucketEntryIndex, value);
         }
@@ -821,38 +821,29 @@ class Material
     {
         for(let i = 0; i < this.properties.length; ++i)
         {
-            let record = this.properties[i];
-            let value  = record.default;
-
-            if(record.name === "ModelMatrix")
-            {
-                value = sceneObject.transform.modelMatrix;
-            }
-            else if(sceneObject.renderable.materialProps.properties.has(record.name))
-            {
-                value = sceneObject.renderable.materialProps.properties.get(record.name).value;  
-            }
-
-            switch(record.size)
+            let property = this.properties[i];
+            let value  = sceneObject.renderable.materialProps.getPropertyValue(i, property.default);
+            
+            switch(property.size)
             {
                 case 1:
-                this.renderer.context.gl.uniform1fv(record.location, value);
+                this.renderer.context.gl.uniform1fv(property.location, value);
                 break;
 
                 case 2:
-                this.renderer.context.gl.uniform2fv(record.location, value);
+                this.renderer.context.gl.uniform2fv(property.location, value);
                 break;
 
                 case 3:
-                this.renderer.context.gl.uniform3fv(record.location, value);
+                this.renderer.context.gl.uniform3fv(property.location, value);
                 break;
 
                 case 4:
-                this.renderer.context.gl.uniform4fv(record.location, value);
+                this.renderer.context.gl.uniform4fv(property.location, value);
                 break;
 
                 case 16:
-                this.renderer.context.gl.uniformMatrix4fv(record.location, false, value);
+                this.renderer.context.gl.uniformMatrix4fv(property.location, false, value);
                 break;
             }
         }
@@ -935,75 +926,72 @@ class MaterialPropertyBlock
         this.parent           = renderableComponent;
         this.properties       = new Map();
         this.dirty            = true;
+        this.propertyNames  = [];
+        this.propertyValues = [];
+
+        this.map();
     }
 
-    setPropertyFloat(name, value)
+    /**
+     * Maps the property block to the currently referenced material in the parent `RenderableComponent`.
+     * 
+     * Note that this is a potentially destructive operation. If the previously mapped material defined
+     * a property `foo`, and the new material does not, then the value for `foo` will be lost.
+     * 
+     * However, if the new material also defines `foo` then that value will be transferred. 
+     */
+    map()
     {
-        this.setProperty(name, value, 1, 0x1406);
+        let newNames = [];
+        let newValues = [];
+
+        if(this.parent._materialReference != null)
+        {
+            let material = this.parent._materialReference;
+            let propertyCount = material.properties.length;
+
+            // For each property in the new material...
+            for(let i = 0; i < propertyCount; ++i)
+            {
+                let property  = material.properties[i];
+                let prevIndex = this.getPropertyIndex(property.name);
+                let value     = (prevIndex == -1) ? property.default : Utils.mergeArrays(this.propertyValues[prevIndex], property.default);
+
+                newNames.push(property.name);
+                newValues.push(value);
+            }
+        }
+
+        this.propertyNames = newNames.slice();
+        this.propertyValues = newValues.slice();
     }
 
-    setPropertyVec2(name, value)
+    setProperty(index, value)
     {
-        this.setProperty(name, value, 2, 0x1406);
-    }
+        if((index < 0) || (index >= this.propertyValues.length))
+        {
+            return;
+        }
 
-    setPropertyVec3(name, value)
-    {
-        this.setProperty(name, value, 3, 0x1406);
-    }
-
-    setPropertyVec4(name, value)
-    {
-        this.setProperty(name, value, 4, 0x1406);
-    }
-
-    setPropertyMatrix4(name, value)
-    {
-
-    }
-
-    setProperty(name, value, size, type)
-    {
-        // TODO: Optimize this and save up to 6ms per frame (aka stop using a
-        // string indexed map which is 99% slower than an integer indexed array).
-        this.properties.set(name, new MaterialPropertyBlockRecord(name, value, size, type));
+        this.propertyValues[index] = value;
         this.dirty = true;
     }
 
-    getPropertyValue(name, defaultValue)
+    getPropertyIndex(name)
     {
-        if(name === "ModelMatrix")
+        for(let i = 0; i < this.propertyNames.length; ++i)
         {
-            // Left as a reminder to myself: don't do this, this is super duper slow.
-            // Like difference between ~175ms per frame and ~45ms per frame for 50,000 objects.
-            //return Array.from(this.parent.parent.transform.modelMatrix);
-            return this.parent.parent.transform.modelMatrix;
+            if(this.propertyNames[i] === name)
+            {
+                return i;
+            }
         }
-        
-        // TODO potential ~2ms improvement over 50,000 objects
-        // Combined for potential ~8ms improvement with the setProperty TODO change above
-        let property = this.properties.get(name);
 
-        if(property === undefined)
-        {
-            return defaultValue;
-        }
-        
-        return property.value;
+        return -1;
     }
 
-    fetchProperties(propertyList)
+    getPropertyValue(index, defaultValue)
     {
-        let results = []
-
-        for(let i = 0; i < propertyList.length; ++i)
-        {
-            let property = propertyList[i];
-            let result = this.getPropertyValue(property.name, property.default);
-            
-            results.push(result);
-        }
-
-        return results;
+        return ((index < 0) || (index >= this.propertyValues.length)) ? defaultValue : this.propertyValues[index];
     }
 }
