@@ -7,8 +7,9 @@ class Mesh
 {
     constructor()
     {
-        this.vertices = [];
-        this.indices = [];
+        this.vertices  = [];
+        this.indices   = [];
+        this.triangles = 0;
     }
 
     /**
@@ -38,6 +39,8 @@ class Mesh
 
         this.buildVertexBuffer(context);
         this.buildIndexBuffer(context);
+
+        this.triangles = this.indices.length / 3;
     }
 
     /**
@@ -108,6 +111,7 @@ class Mesh
         this.bind(context);
         
         context.gl.drawElements(context.gl.TRIANGLES, this.indices.length, context.gl.UNSIGNED_SHORT, 0);
+        return this.triangles;
     }
 
     /**
@@ -121,5 +125,6 @@ class Mesh
         this.bind(context);
 
         context.gl.drawElementsInstanced(context.gl.TRIANGLES, this.indices.length, context.gl.UNSIGNED_SHORT, 0, instanceCount);
+        return (this.triangles * instanceCount);
     }
 }

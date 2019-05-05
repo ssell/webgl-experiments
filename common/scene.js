@@ -6,8 +6,8 @@ class Scene
     constructor(canvasId)
     {
         this.renderer      = new Renderer(canvasId);
+        this.frameStats    = new FrameStats(this.renderer.context);
         this.sceneObjects  = [];
-        this.frameStats    = new FrameStats();
         this.lastFrameTime = 0.0;
         this.deltaTime     = 0.0;
     }
@@ -16,8 +16,12 @@ class Scene
     {
         this.buildFlatShader();
         this.buildFlatInstancedShader();
+        this.buildFlashingShader();
+
         this.buildDefaultMaterial();
         this.buildDefaultInstancedMaterial();
+        this.buildFlashingMaterial();
+        
         this.buildQuadMesh();
 
         this.renderer.camera = new Camera(this.renderer); 
@@ -40,13 +44,19 @@ class Scene
         this.renderer.shaders.set("flat_instanced", shader);
     }
 
+    buildFlashingShader()
+    {
+        let shader = new Shader(this.renderer.context, shader_flash_vs_instanced, null, shader_flat_fs);
+        this.renderer.shaders.set("shader_flash_instanced", shader);
+    }
+
     buildDefaultMaterial()
     {
         let material = new Material(this.renderer, "default", "flat");
 
         material.enableProperty("Color", 4, [1.0, 0.0, 1.0, 1.0],);
 
-        this.renderer.materials.set("default", material);
+        this.renderer.materials.set(material.name, material);
     }
 
     buildDefaultInstancedMaterial()
@@ -55,7 +65,17 @@ class Scene
 
         material.enableProperty("Color", 4, [1.0, 1.0, 1.0, 1.0]);
 
-        this.renderer.materials.set("default_instanced", material);
+        this.renderer.materials.set(material.name, material);
+    }
+
+    buildFlashingMaterial()
+    {
+        let material = new Material(this.renderer, "flash_instanced", "shader_flash_instanced", true);
+
+        material.enableProperty("StartColor", 4, [0.0, 0.0, 0.0, 1.0]);
+        material.enableProperty("EndColor", 4, [1.0, 1.0, 1.0, 1.0]);
+
+        this.renderer.materials.set(material.name, material);
     }
 
     buildQuadMesh()
@@ -84,7 +104,7 @@ class Scene
 
         elapsedTime *= 0.001;                   // Convert to ms
 
-        this.deltaTime = elapsedTime - this.lastFrameTime;
+        this.deltaTime     = elapsedTime - this.lastFrameTime;
         this.lastFrameTime = elapsedTime;
 
         for(var i = 0; i < this.sceneObjects.length; ++i)
@@ -101,9 +121,9 @@ class Scene
             }
         }
 
-        var drawCalls = this.renderer.drawScene(this.deltaTime);
+        let drawStats = this.renderer.drawScene(0, this.frameStats.timeElapsed, this.deltaTime);
 
-        this.frameStats.addFrame(this.deltaTime, drawCalls);
+        this.frameStats.endFrame(this.deltaTime, drawStats[0], drawStats[1]);
         this.frameStats.report();
 
         requestAnimationFrame(()=>this.frame());

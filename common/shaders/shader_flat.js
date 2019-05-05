@@ -28,3 +28,16 @@ const shader_flat_fs = shader_common_fs + `
         gl_FragColor = vColor;
     }
 `;
+
+const shader_flash_vs_instanced = shader_common_vs_instanced + `
+    attribute vec4 StartColor;
+    attribute vec4 EndColor;
+
+    varying lowp vec4 vColor;
+
+    void main()
+    {
+        gl_Position = transformPosition();
+        vColor = vec4(mix(StartColor, EndColor, mod(FrameInfo.y, 1.0)));
+    }
+`;

@@ -16,9 +16,10 @@ class Renderer
         this.camera     = null;
     }
     
-    drawScene(delta)
+    drawScene(frameNumber, timeElapsed, delta)
     {
-        let drawCalls = 0;
+        var drawStats = [0, 0];
+        var frameInfo = [frameNumber, timeElapsed, delta, 0];
 
         // Clear the frame buffer and update the view matrix
         this.context.clearBuffers();
@@ -40,19 +41,25 @@ class Renderer
             {
                 continue;
             }
+
+            material.setUniformVec4("FrameInfo", frameInfo);
             
             // Render the individual objects associated with this material:mesh combo
             let sceneObjects = this.renderMap.get(renderEntry.value);
-            
+
+            let results = [0, 0];     // [draw calls, triangles drawn]
+
             if(material.instanced === false)
             {
-                drawCalls += this.drawSceneNoInstancing(delta, sceneObjects, mesh, material);
+                results = this.drawSceneNoInstancing(delta, sceneObjects, mesh, material);
             }
             else
             {
-                drawCalls += this.drawSceneInstancing(delta, sceneObjects, meshName, mesh, material);
+                results = this.drawSceneInstancing(delta, sceneObjects, meshName, mesh, material);
             }
             
+            drawStats[0] += results[0];
+            drawStats[1] += results[1];
 
             renderEntry = renderIter.next();
         }
@@ -61,7 +68,7 @@ class Renderer
         // that we are only tracking valid, up-to-date scene objects.
         this.clearRenderMap();
 
-        return drawCalls;
+        return drawStats;
     }
 
     /**
@@ -71,21 +78,22 @@ class Renderer
      */
     drawSceneNoInstancing(delta, sceneObjects, mesh, material)
     {
-        let drawCalls = 0;
-
         if(!material.bind())
         {
-            return drawCalls;
+            return [0, 0];
         }
+
+        let drawCalls = 0;
+        let triangles = 0;
 
         for(let i = 0; i < sceneObjects.length; ++i)
         {
             material.bindNonInstancedProperties(sceneObjects[i]);
-            mesh.render(this.context);
+            triangles += mesh.render(this.context);
             drawCalls++;
         }
 
-        return drawCalls;
+        return [drawCalls, triangles];
     }
 
     /**
@@ -98,29 +106,25 @@ class Renderer
      */
     drawSceneInstancing(delta, sceneObjects, meshName, mesh, material)
     {
-        if(sceneObjects.length == 0)
-        {
-            return 0;
-        }
-
         if(!material.bind())
         {
-            return 0;
+            return [0, 0];
         }
 
         let leftToRender = sceneObjects.length;
         let numInstances = Math.ceil(sceneObjects.length / this.instanceSize);
+        let triangles    = 0;
 
         for(let i = 0; i < numInstances; ++i)
         {
             material.bindInstanced(meshName, i);
-            mesh.renderInstanced(this.context, (leftToRender >= this.instanceSize ? this.instanceSize : leftToRender));
+            triangles += mesh.renderInstanced(this.context, (leftToRender >= this.instanceSize ? this.instanceSize : leftToRender));
             material.unbindInstanced(this.context);
 
             leftToRender -= this.instanceSize;
         }
         
-        return numInstances;
+        return [numInstances, triangles];
     }
 
     /**

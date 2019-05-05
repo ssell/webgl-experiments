@@ -124,26 +124,18 @@ class QuadObject extends SceneObject
 
 class FlashingQuad extends QuadObject
 {
-    constructor(renderer, colorA = [0.0, 1.0, 0.0], colorB = [0.0, 0.0, 1.0])
+    constructor(renderer, startColor = [0.0, 1.0, 0.0], endColor = [0.0, 0.0, 1.0])
     {
         super(renderer);
 
-        this.colorA  = colorA;
-        this.colorB  = colorB;
-        this.animate = true;
+        this.renderable.material = "flash_instanced";
+
+        this.renderable.materialProps.setPropertyByName("StartColor", [startColor[0], startColor[1], startColor[2], 1.0]);
+        this.renderable.materialProps.setPropertyByName("EndColor", [endColor[0], endColor[1], endColor[2], 1.0]);
     }
 
     update(delta)
     {
         super.update(delta);
-        //this.renderable.materialProps.dirty = true;
-
-        if(!this.animate)
-        {
-            return;
-        }
-
-        const color = Lerp3(this.colorA, this.colorB, this.elapsed % 1.0);
-        this.renderable.materialProps.setProperty(this.propColor, [color[0], color[1], color[2], 1.0]);
     }
 }

@@ -31,7 +31,7 @@
                 scene.renderer.camera.transform.translate(0.0, 0.0, 50.0);
                 scene.renderer.enableInstancing = false;
 
-                for(let i = 0; i < 50000; ++i)
+                for(let i = 0; i < 25000; ++i)
                 {
                     //let object = new QuadObject(scene.renderer);
                     let object = new FlashingQuad(scene.renderer);
@@ -76,11 +76,12 @@
         </script>
     </head>
     <body>
-        <canvas id="glCanvas" width="640" height="480"></canvas>
+        <canvas id="glCanvas" width="800" height="600"></canvas>
         <div>
             Frame: <span id="value_frame">0</span><br/>
             FPS: <span id="value_fps">0</span><br/>
             MS: <span id="value_ms">0</span><br/>
+            Triangles: <span id="value_triangles">0</span><br/>
             Draws: <span id="value_drawcalls">0</span><br/>
             Instancing: <input id="enable_instancing" type="checkbox" checked="checked"><br/>
             Animate: <input id="enable_animate" type="checkbox" checked="checked"><br/>

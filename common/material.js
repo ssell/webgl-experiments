@@ -247,6 +247,7 @@ class MaterialBucketHolder
                 renderable.bucketEntryIndex = bucket.entryCount;
             }
 
+            renderable.materialProps.propertyDirty[i] = false;
             bucket.add(value);
         }
 
@@ -354,10 +355,16 @@ class MaterialBucketHolder
 
         for(let i = 0; i < this.properties.length; ++i)
         {
+            if(!renderable.materialProps.propertyDirty[i])
+            {
+                continue;
+            }
+
             let property = this.properties[i];
             let value    = renderable.materialProps.getPropertyValue(i, property.default);
             let bucket   = this.propertyBuckets[i][renderable.bucketIndex];
 
+            renderable.materialProps.propertyDirty[i] = false;
             bucket.set(renderable.bucketEntryIndex, value);
         }
 
@@ -382,6 +389,11 @@ class MaterialPropertyRecord
         this.size     = size;
         this.location = location;
         this.buffer   = context.gl.createBuffer();
+
+        if(location === -1)
+        {
+            console.warn("Property '" + name + "' defined with an invalid attribute location.");
+        }
     }
 }
 
@@ -532,7 +544,6 @@ class Material
         else
         {
             location = this.renderer.context.gl.getAttribLocation(this.shader.shaderProgram, name);
-            
         }
 
         let property = new MaterialPropertyRecord(this.renderer.context, name, defaultValue, size, location);
@@ -928,6 +939,7 @@ class MaterialPropertyBlock
         this.dirty            = true;
         this.propertyNames  = [];
         this.propertyValues = [];
+        this.propertyDirty  = [];
 
         this.map();
     }
@@ -942,8 +954,9 @@ class MaterialPropertyBlock
      */
     map()
     {
-        let newNames = [];
+        let newNames  = [];
         let newValues = [];
+        let newDirty  = [];
 
         if(this.parent._materialReference != null)
         {
@@ -959,11 +972,18 @@ class MaterialPropertyBlock
 
                 newNames.push(property.name);
                 newValues.push(value);
+                newDirty.push(true);
             }
         }
 
-        this.propertyNames = newNames.slice();
+        this.propertyNames  = newNames.slice();
         this.propertyValues = newValues.slice();
+        this.propertyDirty  = newDirty.slice();
+    }
+
+    setPropertyByName(name, value)
+    {
+        this.setProperty(this.getPropertyIndex(name), value);
     }
 
     setProperty(index, value)
@@ -974,6 +994,7 @@ class MaterialPropertyBlock
         }
 
         this.propertyValues[index] = value;
+        this.propertyDirty[index] = true;
         this.dirty = true;
     }
 
