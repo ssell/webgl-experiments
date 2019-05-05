@@ -1,10 +1,12 @@
 <html>
     <head>
+        <link rel="stylesheet" href="styles/general.css">
+
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
         <script src="https://mdn.github.io/webgl-examples/tutorial/gl-matrix.js"></script>
 
         <script src="common/shaders/shader_common.js"></script>
-        <script src="common/shaders/shader_flat.js"></script>
+        <script src="common/shaders/default_shaders.js"></script>
 
         <script src="common/utils.js"></script>
         <script src="common/vertex.js"></script>
@@ -33,8 +35,10 @@
 
                 for(let i = 0; i < 25000; ++i)
                 {
-                    //let object = new QuadObject(scene.renderer);
-                    let object = new FlashingQuad(scene.renderer);
+                    let startColor = [GetRandom(0, 1), GetRandom(0, 1), GetRandom(0, 1), 1.0];
+                    let endColor   = [GetRandom(0, 1), GetRandom(0, 1), GetRandom(0, 1), 1.0];
+
+                    let object = new FlashingQuad(scene.renderer, startColor, endColor);
                     object.transform.translate(GetRandom(-25, 25), GetRandom(-25, 25), GetRandom(-75, 0));
                     scene.sceneObjects.push(object);
                 }
@@ -48,7 +52,7 @@
 
                 $("#enable_instancing").change(function()
                 {
-                    let material = (this.checked === true ? "default_instanced" : "default");
+                    let material = (this.checked === true ? "flash_instanced" : "flash");
 
                     for(let i = 0; i < scene.sceneObjects.length; ++i)
                     {
@@ -57,35 +61,18 @@
 
                     scene.frameStats.flush();
                 });
-
-                $("#enable_animate").change(function()
-                {
-                    for(let i = 0; i < scene.sceneObjects.length; ++i)
-                    {
-                        scene.sceneObjects[i].animate = this.checked;
-                    }
-
-                    scene.frameStats.flush();
-                });
-
-                $("#randomize").click(function()
-                {
-                    scene.renderer.materials.get("default").setUniformVec4("Color", [GetRandom(0, 1), GetRandom(0, 1), GetRandom(0, 1), 1.0]);
-                });
             });
         </script>
     </head>
     <body>
-        <canvas id="glCanvas" width="800" height="600"></canvas>
-        <div>
-            Frame: <span id="value_frame">0</span><br/>
-            FPS: <span id="value_fps">0</span><br/>
-            MS: <span id="value_ms">0</span><br/>
-            Triangles: <span id="value_triangles">0</span><br/>
-            Draws: <span id="value_drawcalls">0</span><br/>
+        <div id="canvas-container">
+            <canvas id="glCanvas" width="800" height="600"></canvas>
+        </div>
+
+        <div id="framestats">
+            [Frame: <span id="value_frame">0</span>] [FPS: <span id="value_fps">0</span>] [MS: <span id="value_ms">0</span>]<br/>
+            [Tris: <span id="value_triangles">0</span>] [Draws: <span id="value_drawcalls">0</span>]<br/>
             Instancing: <input id="enable_instancing" type="checkbox" checked="checked"><br/>
-            Animate: <input id="enable_animate" type="checkbox" checked="checked"><br/>
-            <button id="randomize">randomize</button><br/>
         </div>
     </body>
 </html>

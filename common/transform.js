@@ -16,13 +16,16 @@ class Transform
 
     set position(value)
     {
-        this._position = value;
+        this._modelMatrix[12] = value[0];
+        this._modelMatrix[13] = value[1];
+        this._modelMatrix[14] = value[2];
+
         this.mmDirty = true;
     }
 
     get position()
     {
-        return this._position;
+        return [this._modelMatrix[12], this._modelMatrix[13], this._modelMatrix[14]]
     }
 
     set scale(value)
@@ -49,22 +52,16 @@ class Transform
 
     translate(x, y, z)
     {
-        this._position[0] += x;
-        this._position[1] += y;
-        this._position[2] += z;
+        this._modelMatrix[12] += x;
+        this._modelMatrix[13] += y;
+        this._modelMatrix[14] += z;
+
         this.mmDirty = true;
     }
 
     get modelMatrix()
     {
-        if(this.mmDirty === true)
-        {
-            this._modelMatrix = mat4.create();
-            mat4.translate(this._modelMatrix, this._modelMatrix, this._position);
-
-            this.mmDirty = false;
-        }
-
+        this.mmDirty = false;
         return this._modelMatrix;
     }
 }

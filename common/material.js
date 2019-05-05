@@ -389,11 +389,6 @@ class MaterialPropertyRecord
         this.size     = size;
         this.location = location;
         this.buffer   = context.gl.createBuffer();
-
-        if(location === -1)
-        {
-            console.warn("Property '" + name + "' defined with an invalid attribute location.");
-        }
     }
 }
 
@@ -440,7 +435,7 @@ class Material
         this.propertyBuckets = new Map();
         
         this.addPropertyBucket(this.renderer.defaultMesh);
-        this.enableProperty("ModelMatrix", 16, mat4.create());
+        this.enableProperty("ModelMatrix", mat4.create());
     }
 
     get instanced()
@@ -525,16 +520,26 @@ class Material
      * in the shader, but not in the rendered SceneObject's `materialProps` then the default value provided is used.
      * 
      * @param {*} name Name of the property which must have a match in the underlying shader.
-     * @param {*} size Size of the property, in elements (floats).
      * @param {*} defaultValue Default value of the property if not overriden by the SceneObject.
      */
-    enableProperty(name, size, defaultValue)
+    enableProperty(name, defaultValue)
     {
+        // Make sure we don't already have this property defined
         if(this.properties.indexOf(name) != -1)
         {
-            return;
+            console.warn("Attempted to redefine property '" + name + "' in material '" + this.name + "'");
+            return false;
         }
 
+        // Calculate the size of the property
+        let size = 1;
+
+        if(defaultValue.length != undefined)
+        {
+            size = defaultValue.length;
+        }
+
+        // Find the location in the shader program
         let location = -1;
 
         if(!this.instanced)
@@ -546,6 +551,13 @@ class Material
             location = this.renderer.context.gl.getAttribLocation(this.shader.shaderProgram, name);
         }
 
+        if(location === -1)
+        {
+            console.warn("Property '" + name + "' in material '" + this.name + "' defined with an invalid attribute location.");
+            return false;
+        }
+
+        // Add the property
         let property = new MaterialPropertyRecord(this.renderer.context, name, defaultValue, size, location);
         this.properties.push(property);
         
@@ -553,6 +565,8 @@ class Material
         {
             this.addPropertyBucketProperty(property);
         }
+
+        return true;
     }
 
     /**

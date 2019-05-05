@@ -1,0 +1,22 @@
+body
+{
+    background-color: #212C4A;
+    color: #DDDDEE;
+}
+
+#canvas-container 
+{
+    width: 100%;
+    text-align:center;
+ }
+ 
+ canvas 
+ {
+    display: inline;
+ }
+
+#framestats
+{
+    text-align: center;
+    color: #445A96;
+}

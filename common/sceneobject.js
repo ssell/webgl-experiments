@@ -137,5 +137,12 @@ class FlashingQuad extends QuadObject
     update(delta)
     {
         super.update(delta);
+
+        this.transform.translate(0.0, delta, 0.0);
+
+        if(this.transform.position[1] > 20)
+        {
+            this.transform.translate(0.0, -40.0, 0.0);
+        }
     }
 }

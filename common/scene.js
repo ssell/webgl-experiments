@@ -14,13 +14,8 @@ class Scene
 
     setup()
     {
-        this.buildFlatShader();
-        this.buildFlatInstancedShader();
-        this.buildFlashingShader();
-
-        this.buildDefaultMaterial();
-        this.buildDefaultInstancedMaterial();
-        this.buildFlashingMaterial();
+        this.buildDefaultShaders();
+        this.buildDefaultMaterials();
         
         this.buildQuadMesh();
 
@@ -32,50 +27,56 @@ class Scene
         requestAnimationFrame(()=>this.frame());
     }
 
-    buildFlatShader()
+    /**
+     * Builds several default shaders, including:
+     * 
+     *     - `flat`
+     *     - `flat_instanced`
+     *     - `flash`
+     *     - `flash_instanced`
+     */
+    buildDefaultShaders()
     {
-        let shader = new Shader(this.renderer.context, shader_flat_vs, null, shader_flat_fs);
-        this.renderer.shaders.set("flat", shader);
+        let shaderFlat = new Shader(this.renderer.context, shader_flat_vs, null, shader_flat_fs);
+        this.renderer.shaders.set("flat", shaderFlat);
+
+        let shaderFlatInstanced = new Shader(this.renderer.context, shader_flat_instanced_vs, null, shader_flat_fs);
+        this.renderer.shaders.set("flat_instanced", shaderFlatInstanced);
+
+        let shaderFlash = new Shader(this.renderer.context, shader_flash_vs, null, shader_flat_fs);
+        this.renderer.shaders.set("flash", shaderFlash);
+
+        let shaderFlashInstanced = new Shader(this.renderer.context, shader_flash_instanced_vs, null, shader_flat_fs);
+        this.renderer.shaders.set("flash_instanced", shaderFlashInstanced);
     }
 
-    buildFlatInstancedShader()
+    /**
+     * Builds several default materials, including:
+     * 
+     *     - `default`
+     *     - `default_instanced`
+     *     - `flash`
+     *     - `flash_instanced`
+     */
+    buildDefaultMaterials()
     {
-        let shader = new Shader(this.renderer.context, shader_flat_vs_instanced, null, shader_flat_fs);
-        this.renderer.shaders.set("flat_instanced", shader);
-    }
+        let materialDefault = new Material(this.renderer, "default", "flat");
+        materialDefault.enableProperty("Color", [1.0, 1.0, 1.0, 1.0],);
+        this.renderer.materials.set(materialDefault.name, materialDefault);
 
-    buildFlashingShader()
-    {
-        let shader = new Shader(this.renderer.context, shader_flash_vs_instanced, null, shader_flat_fs);
-        this.renderer.shaders.set("shader_flash_instanced", shader);
-    }
-
-    buildDefaultMaterial()
-    {
-        let material = new Material(this.renderer, "default", "flat");
-
-        material.enableProperty("Color", 4, [1.0, 0.0, 1.0, 1.0],);
-
-        this.renderer.materials.set(material.name, material);
-    }
-
-    buildDefaultInstancedMaterial()
-    {
-        let material = new Material(this.renderer, "default_instanced", "flat_instanced", true);
-
-        material.enableProperty("Color", 4, [1.0, 1.0, 1.0, 1.0]);
-
-        this.renderer.materials.set(material.name, material);
-    }
-
-    buildFlashingMaterial()
-    {
-        let material = new Material(this.renderer, "flash_instanced", "shader_flash_instanced", true);
-
-        material.enableProperty("StartColor", 4, [0.0, 0.0, 0.0, 1.0]);
-        material.enableProperty("EndColor", 4, [1.0, 1.0, 1.0, 1.0]);
-
-        this.renderer.materials.set(material.name, material);
+        let materialDefaultInstanced = new Material(this.renderer, "default_instanced", "flat_instanced", true);
+        materialDefaultInstanced.enableProperty("Color", [1.0, 1.0, 1.0, 1.0]);
+        this.renderer.materials.set(materialDefaultInstanced.name, materialDefaultInstanced);
+        
+        let materialFlash = new Material(this.renderer, "flash", "flash");
+        materialFlash.enableProperty("StartColor", [0.0, 0.0, 0.0, 1.0]);
+        materialFlash.enableProperty("EndColor", [1.0, 1.0, 1.0, 1.0]);
+        this.renderer.materials.set(materialFlash.name, materialFlash);
+        
+        let materialFlashInstanced = new Material(this.renderer, "flash_instanced", "flash_instanced", true);
+        materialFlashInstanced.enableProperty("StartColor", [0.0, 0.0, 0.0, 1.0]);
+        materialFlashInstanced.enableProperty("EndColor", [1.0, 1.0, 1.0, 1.0]);
+        this.renderer.materials.set(materialFlashInstanced.name, materialFlashInstanced);
     }
 
     buildQuadMesh()
