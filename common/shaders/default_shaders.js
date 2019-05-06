@@ -38,7 +38,7 @@ const shader_flash_vs = shader_common_vs + `
     void main()
     {
         gl_Position = transformPosition();
-        vColor = vec4(mix(StartColor, EndColor, sin(FrameInfo.y)));
+        vColor = vec4(mix(StartColor, EndColor, (sin(FrameInfo.y) + 1.0) * 0.5));
     }
 `;
 
@@ -51,6 +51,6 @@ const shader_flash_instanced_vs = shader_common_vs_instanced + `
     void main()
     {
         gl_Position = transformPosition();
-        vColor = vec4(mix(StartColor, EndColor, sin(FrameInfo.y)));
+        vColor = vec4(mix(StartColor, EndColor, (sin(FrameInfo.y) + 1.0) * 0.5));
     }
 `;

@@ -7,7 +7,7 @@ class Camera extends SceneObject
     _fov    = 45 * Math.PI / 180;
     _aspect = 0.0;
     _near   = 0.1;
-    _far    = 100.0;
+    _far    = 500.0;
 
     constructor(renderer)
     {

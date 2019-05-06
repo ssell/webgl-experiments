@@ -23,12 +23,13 @@ class RendererableComponent
             return true;
         }
 
+        this._materialReference.removeRenderableReference(this);
+
         if(!this.renderer.materials.has(newMaterialName))
         {
+            this._materialReference = null;
             return false;
         }
-
-        this._materialReference.removeRenderableReference(this);
         
         this._materialName = newMaterialName;
         this._materialReference = this.renderer.materials.get(this._materialName);
@@ -49,22 +50,33 @@ class RendererableComponent
         {
             return true;
         }
-
+        
         if(!this.renderer.materials.has(newMeshName))
         {
             return false;
         }
 
-        this._materialReference.removeRenderableReference(this);
-
         this._meshName = newMeshName;
         this._meshReference = this.renderer.meshes.get(this._meshName);
-        this._materialReference.addRenderableReference(this);
+        
+        if(this._materialReference != null)
+        {
+            this._materialReference.removeRenderableReference(this);
+            this._materialReference.addRenderableReference(this);
+        }
     }
 
     get mesh()
     {
         return this._meshName;
+    }
+
+    dispose()
+    {
+        if(this._materialReference != null)
+        {
+            this._materialReference.removeRenderableReference(this);
+        }
     }
     
     update()
@@ -89,6 +101,11 @@ class SceneObject
         this.visible       = true;
         this.materialProps = new MaterialPropertyBlock(this);
         this.elapsed       = 0.0;
+    }
+
+    dispose()
+    {
+        this.renderable.dispose();
     }
 
     update(delta)

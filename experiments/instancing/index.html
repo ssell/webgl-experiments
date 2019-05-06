@@ -1,0 +1,154 @@
+<html>
+    <head>
+        <link href="https://fonts.googleapis.com/css?family=Roboto+Mono" rel="stylesheet">
+        <link rel="stylesheet" href="../../styles/general.css">
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+        <script src="https://mdn.github.io/webgl-examples/tutorial/gl-matrix.js"></script>
+
+        <script src="../../common/shaders/shader_common.js"></script>
+        <script src="../../common/shaders/default_shaders.js"></script>
+
+        <script src="../../common/utils.js"></script>
+        <script src="../../common/vertex.js"></script>
+        <script src="../../common/context.js"></script>
+        <script src="../../common/shader.js"></script>
+        <script src="../../common/material.js"></script>
+        <script src="../../common/mesh.js"></script>
+        <script src="../../common/transform.js"></script>
+        <script src="../../common/renderer.js"></script>
+        <script src="../../common/framestats.js"></script>
+        <script src="../../common/sceneobject.js"></script>
+        <script src="../../common/camera.js"></script>
+        <script src="../../common/scene.js"></script>
+
+        <script type="text/javascript">
+            var scene = null;
+
+            function spawnQuad()
+            {
+                let startColor = [GetRandom(0, 1), GetRandom(0, 1), GetRandom(0, 1), 1.0];
+                let endColor   = [GetRandom(0, 1), GetRandom(0, 1), GetRandom(0, 1), 1.0];
+
+                let object = new FlashingQuad(scene.renderer, startColor, endColor);
+                object.transform.translate(GetRandom(-25, 25), GetRandom(-25, 25), GetRandom(-75, 0));
+                scene.sceneObjects.push(object);
+            }
+
+            function removeQuad()
+            {
+                // Very naively assume all scene objects are flashing quads
+                let lastSceneObject = scene.sceneObjects.pop();
+                lastSceneObject.dispose();
+            }
+
+            function setupScene()
+            {
+                scene = new Scene("glCanvas");
+                scene.setup();
+
+                scene.renderer.camera.clearColor(0.098, 0.098, 0.196);
+                scene.renderer.camera.transform.translate(0.0, 0.0, 50.0);
+                scene.renderer.enableInstancing = false;
+
+                for(let i = 0; i < 20000; ++i)
+                {
+                    spawnQuad();
+                }
+
+                scene.start();
+            }
+
+            $(document).ready(function()
+            {
+                setupScene();
+
+                $("#enable_instancing").change(function()
+                {
+                    let material = (this.checked === true ? "flash_instanced" : "flash");
+
+                    for(let i = 0; i < scene.sceneObjects.length; ++i)
+                    {
+                        scene.sceneObjects[i].renderable.material = material;
+                    }
+
+                    scene.frameStats.flush();
+                });
+
+                $("#param_objectcount").on("input", function() 
+                {
+                    let value = Clamp($("#param_objectcount").val(), 0, 50000);
+                    $("#param_objectcount").val(value);
+
+                    let difference = (value - scene.sceneObjects.length);
+
+                    if(difference > 0)
+                    {
+                        while(difference--)
+                        {
+                            spawnQuad();
+                        }
+                    }
+                    else if(difference < 0)
+                    {
+                        while(difference++)
+                        {
+                            removeQuad();
+                        }
+                    }
+                });
+            });
+        </script>
+    </head>
+    <body>
+        <div id="overlay">
+            <div id="framestats" class="overlay">
+                <table>
+                    <tr>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                    <tr>
+                        <td>frame</td>
+                        <td><span id="value_frame">0</span></td>
+                    </tr>
+                    <tr>
+                        <td>fps</td>
+                        <td><span id="value_fps">0</span></td>
+                    </tr>
+                    <tr>
+                        <td>ms</td>
+                        <td><span id="value_ms">0</span></td>
+                    </tr>
+                    <tr>
+                        <td>triangles</td>
+                        <td><span id="value_triangles">0</span></td>
+                    </tr>
+                    <tr>
+                        <td>draw calls</td>
+                        <td><span id="value_drawcalls">0</span></td>
+                    </tr>
+                    <tr>
+                        <td>instancing</td>
+                        <td><input id="enable_instancing" type="checkbox" checked="checked" class="checkmark"></td>
+                    </tr>
+                </table>
+            </div>
+            <div id="sceneparams">
+                <table>
+                    <tr>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                    <tr>
+                        <td>objects</td>
+                        <td><input id="param_objectcount" type="number" name="quantity" min="0" max="50000" value="20000"></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div id="canvas-container">
+            <canvas id="glCanvas" width="800" height="600"></canvas>
+        </div>
+    </body>
+</html>
