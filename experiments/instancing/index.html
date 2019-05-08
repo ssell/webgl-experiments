@@ -23,7 +23,7 @@
         <script src="../../common/camera.js"></script>
         <script src="../../common/scene.js"></script>
 
-        <!-- Builds a scene with 20,000 independently moving and flashing quads in ~25 lines. -->
+        <!-- Builds a scene with 50,000 independently moving and flashing quads in ~25 lines. -->
         <script type="text/javascript">
             var scene = null;
 
@@ -34,7 +34,6 @@
                 
                 scene.renderer.camera.clearColor(0.098, 0.098, 0.196);
                 scene.renderer.camera.transform.translate(0.0, 0.0, 50.0);
-                scene.renderer.enableInstancing = false;
 
                 for(let i = 0; i < 50000; ++i)
                 {
@@ -112,7 +111,10 @@
     </head>
     <body>
         <div id="overlay">
-            <div id="framestats" class="overlay">
+            <div class="info_block" style="padding-left: 3px;">
+                <a href="../../index.html" style="text-decoration: underline;">experiments</a> > instancing
+            </div>
+            <div class="info_block">
                 <table>
                     <tr>
                         <th></th>
@@ -138,17 +140,17 @@
                         <td>draw calls</td>
                         <td><span id="value_drawcalls">0</span></td>
                     </tr>
-                    <tr>
-                        <td>instancing</td>
-                        <td><input id="enable_instancing" type="checkbox" checked="checked" class="checkmark"></td>
-                    </tr>
                 </table>
             </div>
-            <div id="sceneparams">
+            <div class="info_block">
                 <table>
                     <tr>
                         <th></th>
                         <th></th>
+                    </tr>
+                    <tr>
+                        <td>instancing</td>
+                        <td><input id="enable_instancing" type="checkbox" checked="checked" class="checkmark"></td>
                     </tr>
                     <tr>
                         <td>objects</td>

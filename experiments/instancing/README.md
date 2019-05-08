@@ -1,5 +1,6 @@
 # Experiments > Instancing
 
+### [(View It Live)](http://ssell.github.io/webgl-experiments/experiments/instancing/index.html)
 
 ## Overview
 

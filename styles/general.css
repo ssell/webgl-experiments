@@ -3,6 +3,7 @@ body
     background-color: #191932;
     color: #DDDDEE;
     font-family: 'Roboto Mono', monospace;
+    font-size: 12px;
 }
 
 #content
@@ -75,13 +76,7 @@ td
     z-index: 10;
 }
 
-#framestats
-{
-    font-size: 10px;
-    background-color: rgba(15, 15, 40, 0.9);
-}
-
-#sceneparams
+.info_block
 {
     margin-top: 2px;
     font-size: 10px;
