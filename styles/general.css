@@ -5,6 +5,36 @@ body
     font-family: 'Roboto Mono', monospace;
 }
 
+#content
+{
+    width: 800px;
+    margin: 0 auto;
+    margin-top: 50px;
+}
+
+.experiment_container
+{
+    border-bottom: 1px solid #292942;
+    padding: 10px;
+    width: 100%;
+}
+
+.experiment_container:hover
+{
+    background-color: #292942;
+}
+
+a
+{
+    color: #FFFFFF;
+    text-decoration: none;
+}
+
+h3
+{
+    padding-top: 0;
+}
+
 #canvas-container 
 {
     width: 100%;
