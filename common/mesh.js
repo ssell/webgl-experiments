@@ -3,10 +3,12 @@
  * 
  * The `vertices` and `indices` members should be populated prior to calling `build`.
  */
-class Mesh
+class Mesh extends Resource
 {
-    constructor()
+    constructor(context, name)
     {
+        super(context, name, ResourceType.Mesh);
+        
         this.vertices  = [];
         this.indices   = [];
         this.triangles = 0;
@@ -14,11 +16,9 @@ class Mesh
 
     /**
      * Builds the mesh based on the pre-specified vertices and indices.
-     * It is expected that the `vertices` array is populated with instances of the `Vertex` class.
-     * 
-     * @param {*} context 
+     * It is expected that the `vertices` array is populated with instances of the `Vertex` class. 
      */
-    build(context)
+    build()
     {
         if(this.vertices.length == 0)
         {
@@ -32,13 +32,13 @@ class Mesh
             return;
         }
 
-        this.vertexBuffer = context.gl.createBuffer();
-        this.indexBuffer = context.gl.createBuffer();
+        this.vertexBuffer = this.context.gl.createBuffer();
+        this.indexBuffer = this.context.gl.createBuffer();
 
-        this.bind(context);
+        this.bind();
 
-        this.buildVertexBuffer(context);
-        this.buildIndexBuffer(context);
+        this.buildVertexBuffer();
+        this.buildIndexBuffer();
 
         this.triangles = this.indices.length / 3;
     }
@@ -46,21 +46,17 @@ class Mesh
     /**
      * Binds the underlying `vertexBuffer` and `indexBuffer` as the active `ARRAY_BUFFER`
      * and `ELEMENT_ARRAY_BUFFER`, respectively.
-     * 
-     * @param {*} context 
      */
-    bind(context)
+    bind()
     {
-        context.gl.bindBuffer(context.gl.ARRAY_BUFFER, this.vertexBuffer);
-        context.gl.bindBuffer(context.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+        this.context.gl.bindBuffer(this.context.gl.ARRAY_BUFFER, this.vertexBuffer);
+        this.context.gl.bindBuffer(this.context.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
     }
 
     /**
      * Populates the `vertexBuffer` with the contents of the `vertices` array.
-     * 
-     * @param {*} context 
      */
-    buildVertexBuffer(context)
+    buildVertexBuffer()
     {
         const stride = Vertex.length();
         var size = this.vertices.length * stride;
@@ -88,43 +84,37 @@ class Mesh
             vertexData[i + 11] = this.vertices[vertex].uv[1];
         }
 
-        context.gl.bufferData(context.gl.ARRAY_BUFFER, vertexData, context.gl.STATIC_DRAW);
+        this.context.gl.bufferData(this.context.gl.ARRAY_BUFFER, vertexData, this.context.gl.STATIC_DRAW);
     }
 
     /**
      * Populates the `indexBuffer` with the contents of the `indices` array.
-     * 
-     * @param {*} context 
      */
-    buildIndexBuffer(context)
+    buildIndexBuffer()
     {
-        context.gl.bufferData(context.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.indices), context.gl.STATIC_DRAW);
+        this.context.gl.bufferData(this.context.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.indices), this.context.gl.STATIC_DRAW);
     }
 
     /**
      * Binds the underlying buffers and calls `drawElements` to render them.
-     * 
-     * @param {*} context 
      */
-    render(context)
+    render()
     {
-        this.bind(context);
+        this.bind();
         
-        context.gl.drawElements(context.gl.TRIANGLES, this.indices.length, context.gl.UNSIGNED_SHORT, 0);
+        this.context.gl.drawElements(this.context.gl.TRIANGLES, this.indices.length, this.context.gl.UNSIGNED_SHORT, 0);
         return this.triangles;
     }
 
     /**
      * Binds the underlying buffers and calls `drawElementsInstanced` to render them.
-     * 
-     * @param {*} context 
      * @param {*} instanceCount Number of instances of this mesh to render.
      */
-    renderInstanced(context, instanceCount)
+    renderInstanced(instanceCount)
     {
-        this.bind(context);
+        this.bind();
 
-        context.gl.drawElementsInstanced(context.gl.TRIANGLES, this.indices.length, context.gl.UNSIGNED_SHORT, 0, instanceCount);
+        this.context.gl.drawElementsInstanced(this.context.gl.TRIANGLES, this.indices.length, this.context.gl.UNSIGNED_SHORT, 0, instanceCount);
         return (this.triangles * instanceCount);
     }
 }

@@ -22,6 +22,7 @@ class Context
         this.gl.enable(this.gl.DEPTH_TEST);
         this.gl.depthFunc(this.gl.LEQUAL);
 
+        this.resources = new ResourceManager();
         this.viewMatrix = mat4.create();
         this.projectionMatrix = mat4.create();
     }

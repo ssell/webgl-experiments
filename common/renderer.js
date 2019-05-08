@@ -2,17 +2,12 @@ class Renderer
 {
     constructor(canvasId)
     {
-        this.defaultMesh              = "quad";
-        this.defaultMaterial          = "default";
-        this.defaultInstancedMaterial = "default_instanced";
-        this.instanceSize             = 1000;
+        this.instanceSize = 1000;
 
         this.renderList = []
         this.renderMap  = new Map();
+        this.renderGroups = new Map();
         this.context    = new Context(canvasId);
-        this.meshes     = new Map();
-        this.shaders    = new Map();
-        this.materials  = new Map();
         this.camera     = null;
     }
     
@@ -26,16 +21,22 @@ class Renderer
         this.context.viewMatrix = this.camera.viewMatrix();
         
         // Iterate over each collection of material:mesh combinations
-        let renderIter = this.renderMap.keys();
+        let renderIter = this.renderGroups.keys();
         let renderEntry = renderIter.next();
 
         while(!renderEntry.done)
         {
-            let members      = renderEntry.value.split(":");
-            let materialName = members[0];
-            let meshName     = members[1];
-            let material     = this.materials.get(materialName);
-            let mesh         = this.meshes.get(meshName);
+            let key = renderEntry.value;
+            let renderObjects = this.renderGroups.get(key);
+            renderEntry = renderIter.next();
+
+            if(renderObjects.length == 0)
+            {
+                continue;
+            }
+            
+            let material = renderObjects[0].renderable._materialReference;
+            let mesh = renderObjects[0].renderable._meshReference;
 
             if((material == null) || (mesh == null))
             {
@@ -45,28 +46,24 @@ class Renderer
             material.setUniformVec4("FrameInfo", frameInfo);
             
             // Render the individual objects associated with this material:mesh combo
-            let sceneObjects = this.renderMap.get(renderEntry.value);
-
             let results = [0, 0];     // [draw calls, triangles drawn]
 
             if(material.instanced === false)
             {
-                results = this.drawSceneNoInstancing(delta, sceneObjects, mesh, material);
+                results = this.drawSceneNoInstancing(delta, renderObjects, mesh, material);
             }
             else
             {
-                results = this.drawSceneInstancing(delta, sceneObjects, meshName, mesh, material);
+                results = this.drawSceneInstancing(delta, renderObjects.length, mesh, material);
             }
             
             drawStats[0] += results[0];
             drawStats[1] += results[1];
-
-            renderEntry = renderIter.next();
         }
 
-        // Clear the render map. We do this so that we are ensured
+        // Clear the render groups. We do this so that we are ensured
         // that we are only tracking valid, up-to-date scene objects.
-        this.clearRenderMap();
+        this.clearRenderGroups();
 
         return drawStats;
     }
@@ -89,7 +86,7 @@ class Renderer
         for(let i = 0; i < sceneObjects.length; ++i)
         {
             material.bindNonInstancedProperties(sceneObjects[i]);
-            triangles += mesh.render(this.context);
+            triangles += mesh.render();
             drawCalls++;
         }
 
@@ -100,32 +97,33 @@ class Renderer
      * Renders the entire collection of SceneObjects in a single instance.
      * 
      * @param {*} delta 
-     * @param {*} sceneObjects 
+     * @param {*} count 
      * @param {*} mesh 
      * @param {*} material 
      */
-    drawSceneInstancing(delta, sceneObjects, meshName, mesh, material)
+    drawSceneInstancing(delta, count, mesh, material)
     {
         if(!material.bind())
         {
             return [0, 0];
         }
 
-        let leftToRender = sceneObjects.length;
-        let numInstances = Math.ceil(sceneObjects.length / this.instanceSize);
+        let leftToRender = count;
+        let numInstances = Math.ceil(count / this.instanceSize);
         let triangles    = 0;
 
         for(let i = 0; i < numInstances; ++i)
         {
-            material.bindInstanced(meshName, i);
-            triangles += mesh.renderInstanced(this.context, (leftToRender >= this.instanceSize ? this.instanceSize : leftToRender));
-            material.unbindInstanced(this.context);
+            material.bindInstanced(mesh.resourceName, i);
+            triangles += mesh.renderInstanced((leftToRender >= this.instanceSize ? this.instanceSize : leftToRender));
+            material.unbindInstanced();
 
             leftToRender -= this.instanceSize;
         }
         
         return [numInstances, triangles];
     }
+
 
     /**
      * Adds the SceneObject that should be rendered this frame to the renderer.
@@ -135,58 +133,67 @@ class Renderer
      * 
      * @param {SceneObject} object 
      */
-    addRenderObject(object)
+    addRenderObject(sceneObject)
     {
-        // Internally we don't track the actual SceneObject itself but rather
-        // it's rendering related properties. The renderMap uses the concatenation
-        // of the material id and mesh id which then points to a map of model matrices.
+        let material = sceneObject.renderable._materialReference;
+        let mesh = sceneObject.renderable._meshReference;
 
-        // As such, all objects that use the same material+mesh combination will end
-        // up in the same render bucket.
-
-        if(object.renderIndex != -1)
+        if((material === null) || (mesh === null))
         {
-            console.warn("!");
+            console.error("Requested to queue scene object for rendering with a null mesh and/or material");
+            return false;
         }
-        
-        let renderId = object.renderable.material + ":" + object.renderable.mesh;
 
-        if(!this.renderMap.has(renderId))
+        let pair = Utils.cantorPair(material.resourceId, mesh.resourceId);
+
+        if(!this.renderGroups.has(pair))
         {
-            this.renderMap.set(renderId, [object]);
+            this.renderGroups.set(pair, [sceneObject]);
         }
         else
         {
-            this.renderMap.get(renderId).push(object);
+            this.renderGroups.get(pair).push(sceneObject);
         }
 
-        object.renderIndex = this.renderMap.get(renderId).length - 1;
+        sceneObject.renderIndex = this.renderGroups.get(pair).length - 1;
+        return true;
     }
 
-    removeRenderObject(object)
+    removeRenderObject(sceneObject)
     {
-        if(object.renderIndex == -1)
+        if(sceneObject.renderIndex == -1)
         {
-            return;
+            return true;
         }
 
-        let renderId = object.renderable.material + ":" + object.renderable.mesh;
+        let material = sceneObject.renderable._materialReference;
+        let mesh = sceneObject.renderable._meshReference;
+
+        if((material === null) || (mesh === null))
+        {
+            console.error("Requested to remove render object with a null mesh and/or material");
+            return false;
+        }
+
+        let pair = Utils.cantorPair(material.resourceId, mesh.resourceId);
         
-        if(this.renderMap.has(renderId))
-        {
-            this.renderMap.get(renderId).splice(object.renderIndex, 1);
-            object.renderIndex = -1;
+        if(this.renderGroups.has(pair))
+        {pair
+            this.renderGroups.get(pair).splice(sceneObject.renderIndex, 1);
+            sceneObject.renderIndex = -1;
         }
+
+        return true;
     }
 
-    clearRenderMap()
+    clearRenderGroups()
     {
-        let renderIter = this.renderMap.keys();
+        let renderIter = this.renderGroups.keys();
         let renderEntry = renderIter.next();
 
         while(!renderEntry.done)
         {
-            this.renderMap.set(renderEntry.value, []);
+            this.renderGroups.set(renderEntry.value, []);
             renderEntry = renderIter.next();
         }
     }

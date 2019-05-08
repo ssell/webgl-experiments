@@ -5,16 +5,18 @@
  *     - Fragment Shader (Mandatory)
  *     - Geometry Shader (Optional)
  */
-class Shader
+class Shader extends Resource
 {
-    constructor(context, vsSource, gsSource, fsSource)
+    constructor(context, name, vsSource, gsSource, fsSource)
     {
+        super(context, name, ResourceType.Shader);
+
         this.shaderProgram = null;
 
         // Upload and compile the shader sources
-        const vs = this.loadShader(context, context.gl.VERTEX_SHADER, vsSource);
-        const gs = this.loadShader(context, context.gl.GEOMETRY_SHADER, gsSource);
-        const fs = this.loadShader(context, context.gl.FRAGMENT_SHADER, fsSource);
+        const vs = this.loadShader(this.context.gl.VERTEX_SHADER,   vsSource);
+        const gs = this.loadShader(this.context.gl.GEOMETRY_SHADER, gsSource);
+        const fs = this.loadShader(this.context.gl.FRAGMENT_SHADER, fsSource);
 
         if((vs === null) || (fs === null))
         {
@@ -22,34 +24,33 @@ class Shader
             return;
         }
         
-        this.createProgram(context, vs, gs, fs);
-        this.findProperties(context);
+        this.createProgram(vs, gs, fs);
+        this.findProperties();
     }
 
     /**
      * Creates a shader of the specified type from the provided source.
      * If shader compilation fails, returns null.
      * 
-     * @param {*} gl WebGL context
      * @param {*} type Shader type (VERTEX_SHADER, GEOMETRY_SHADER, or FRAGMENT_SHADER)
      * @param {*} source Text source of the shader
      */
-    loadShader(context, type, source)
+    loadShader(type, source)
     {
         if(source === null)
         {
             return null;
         }
 
-        const shader = context.gl.createShader(type);
+        const shader = this.context.gl.createShader(type);
         
-        context.gl.shaderSource(shader, source);
-        context.gl.compileShader(shader);
+        this.context.gl.shaderSource(shader, source);
+        this.context.gl.compileShader(shader);
 
-        if(!context.gl.getShaderParameter(shader, context.gl.COMPILE_STATUS))
+        if(!this.context.gl.getShaderParameter(shader, this.context.gl.COMPILE_STATUS))
         {
-            alert("An error occurred during shader compilation: " + context.gl.getShaderInfoLog(shader));
-            context.gl.deleteShader(shader);
+            alert("An error occurred during shader compilation: " + this.context.gl.getShaderInfoLog(shader));
+            this.context.gl.deleteShader(shader);
 
             return null;
         }
@@ -60,95 +61,93 @@ class Shader
     /**
      * Attempts to link the provided shaders into a shader program.
      * 
-     * @param {*} gl WebGL context
      * @param {*} vs Compiled Vertex Shader (required)
      * @param {*} gs Compiled Geometry Shader (optional)
      * @param {*} fs Compiled Fragment Shader ()
      */
-    createProgram(context, vs, gs, fs)
+    createProgram(vs, gs, fs)
     {
-        this.shaderProgram = context.gl.createProgram();
+        this.shaderProgram = this.context.gl.createProgram();
 
-        context.gl.attachShader(this.shaderProgram, vs);
-        context.gl.attachShader(this.shaderProgram, fs);
+        this.context.gl.attachShader(this.shaderProgram, vs);
+        this.context.gl.attachShader(this.shaderProgram, fs);
 
         if(gs != null)
         {
-            context.gl.attachShader(this.shaderProgram, gs);
+            this.context.gl.attachShader(this.shaderProgram, gs);
         }
 
-        context.gl.linkProgram(this.shaderProgram);
+        this.context.gl.linkProgram(this.shaderProgram);
 
         // Check for success
-        if(!context.gl.getProgramParameter(this.shaderProgram, context.gl.LINK_STATUS))
+        if(!this.context.gl.getProgramParameter(this.shaderProgram, this.context.gl.LINK_STATUS))
         {
-            alert("Unable to initialize shader program: " + context.gl.getProgramInfoLog(this.shaderProgram));
+            alert("Unable to initialize shader program: " + this.context.gl.getProgramInfoLog(this.shaderProgram));
             this.shaderProgram = null;
         }
     }
 
     /**
      * Find and the uniforms and attributes defined in all shaders (well, in shader_common).
-     * @param {*} gl 
      */
-    findProperties(context)
+    findProperties()
     {
         if(this.shaderProgram === null)
         {
             return;
         }
         
-        this.viewMatrix       = context.gl.getUniformLocation(this.shaderProgram, "ViewMatrix");
-        this.projectionMatrix = context.gl.getUniformLocation(this.shaderProgram, "ProjectionMatrix");
+        this.viewMatrix       = this.context.gl.getUniformLocation(this.shaderProgram, "ViewMatrix");
+        this.projectionMatrix = this.context.gl.getUniformLocation(this.shaderProgram, "ProjectionMatrix");
         
-        this.vertexPosition = context.gl.getAttribLocation(this.shaderProgram, "VertexPosition");
-        this.vertexColor    = context.gl.getAttribLocation(this.shaderProgram, "VertexColor");
-        this.vertexNormal   = context.gl.getAttribLocation(this.shaderProgram, "VertexNormal");
-        this.vertexUV       = context.gl.getAttribLocation(this.shaderProgram, "VertexUV");
+        this.vertexPosition = this.context.gl.getAttribLocation(this.shaderProgram, "VertexPosition");
+        this.vertexColor    = this.context.gl.getAttribLocation(this.shaderProgram, "VertexColor");
+        this.vertexNormal   = this.context.gl.getAttribLocation(this.shaderProgram, "VertexNormal");
+        this.vertexUV       = this.context.gl.getAttribLocation(this.shaderProgram, "VertexUV");
     }
 
-    bind(context)
+    bind()
     {
-        context.gl.useProgram(this.shaderProgram);
+        this.context.gl.useProgram(this.shaderProgram);
 
-        this.bindCommonUniforms(context);
-        this.bindCommonAttributes(context);
+        this.bindCommonUniforms();
+        this.bindCommonAttributes();
 
         return true;
     }
 
-    bindCommonUniforms(context)
+    bindCommonUniforms()
     {
-        context.gl.uniformMatrix4fv(this.viewMatrix, false, context.viewMatrix);
-        context.gl.uniformMatrix4fv(this.projectionMatrix, false, context.projectionMatrix);
+        this.context.gl.uniformMatrix4fv(this.viewMatrix, false, this.context.viewMatrix);
+        this.context.gl.uniformMatrix4fv(this.projectionMatrix, false, this.context.projectionMatrix);
     }
 
-    bindCommonAttributes(context)
+    bindCommonAttributes()
     {
         const vertLength = Vertex.length() * 4;
         
         if(this.vertexPosition != -1) 
         { 
-            context.gl.vertexAttribPointer(this.vertexPosition, 3, context.gl.FLOAT, false, vertLength, 0 * 4);
-            context.gl.enableVertexAttribArray(this.vertexPosition);
+            this.context.gl.vertexAttribPointer(this.vertexPosition, 3, this.context.gl.FLOAT, false, vertLength, 0 * 4);
+            this.context.gl.enableVertexAttribArray(this.vertexPosition);
         }
 
         if(this.vertexColor != -1) 
         {    
-            context.gl.vertexAttribPointer(this.vertexColor, 4, context.gl.FLOAT, false, vertLength, 4 * 3); 
-            context.gl.enableVertexAttribArray(this.vertexColor);
+            this.context.gl.vertexAttribPointer(this.vertexColor, 4, this.context.gl.FLOAT, false, vertLength, 4 * 3); 
+            this.context.gl.enableVertexAttribArray(this.vertexColor);
         }
 
         if(this.vertexNormal != -1) 
         {    
-            context.gl.vertexAttribPointer(this.vertexNormal, 3, context.gl.FLOAT, false, vertLength, 4 * 7); 
-            context.gl.enableVertexAttribArray(this.vertexNormal);
+            this.context.gl.vertexAttribPointer(this.vertexNormal, 3, this.context.gl.FLOAT, false, vertLength, 4 * 7); 
+            this.context.gl.enableVertexAttribArray(this.vertexNormal);
         }
 
         if(this.vertexUV != -1) 
         {       
-            context.gl.vertexAttribPointer(this.vertexUV, 2, context.gl.FLOAT, false, vertLength, 4 * 10);
-            context.gl.enableVertexAttribArray(this.vertexUV);
+            this.context.gl.vertexAttribPointer(this.vertexUV, 2, this.context.gl.FLOAT, false, vertLength, 4 * 10);
+            this.context.gl.enableVertexAttribArray(this.vertexUV);
         }
     }
 }

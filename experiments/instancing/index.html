@@ -11,6 +11,7 @@
 
         <script src="../../common/utils.js"></script>
         <script src="../../common/vertex.js"></script>
+        <script src="../../common/resources.js"></script>
         <script src="../../common/context.js"></script>
         <script src="../../common/shader.js"></script>
         <script src="../../common/material.js"></script>
@@ -22,36 +23,20 @@
         <script src="../../common/camera.js"></script>
         <script src="../../common/scene.js"></script>
 
+        <!-- Builds a scene with 20,000 independently moving and flashing quads in ~25 lines. -->
         <script type="text/javascript">
             var scene = null;
-
-            function spawnQuad()
-            {
-                let startColor = [GetRandom(0, 1), GetRandom(0, 1), GetRandom(0, 1), 1.0];
-                let endColor   = [GetRandom(0, 1), GetRandom(0, 1), GetRandom(0, 1), 1.0];
-
-                let object = new FlashingQuad(scene.renderer, startColor, endColor);
-                object.transform.translate(GetRandom(-25, 25), GetRandom(-25, 25), GetRandom(-75, 0));
-                scene.sceneObjects.push(object);
-            }
-
-            function removeQuad()
-            {
-                // Very naively assume all scene objects are flashing quads
-                let lastSceneObject = scene.sceneObjects.pop();
-                lastSceneObject.dispose();
-            }
 
             function setupScene()
             {
                 scene = new Scene("glCanvas");
                 scene.setup();
-
+                
                 scene.renderer.camera.clearColor(0.098, 0.098, 0.196);
                 scene.renderer.camera.transform.translate(0.0, 0.0, 50.0);
                 scene.renderer.enableInstancing = false;
 
-                for(let i = 0; i < 20000; ++i)
+                for(let i = 0; i < 50000; ++i)
                 {
                     spawnQuad();
                 }
@@ -59,10 +44,31 @@
                 scene.start();
             }
 
+            function spawnQuad()
+            {
+                let startColor = Utils.getRandomColor();
+                let endColor   = Utils.getRandomColor();
+
+                let quad = new FlashingQuad(scene.renderer, startColor, endColor);
+                quad.transform.translate(Utils.getRandom(-25, 25), Utils.getRandom(-25, 25), (Utils.getRandom(-75, 0)));
+                scene.sceneObjects.push(quad);
+            }
+
+            function removeQuad()
+            {
+                let lastSceneObject = scene.sceneObjects.pop();
+                
+                if(lastSceneObject != undefined)
+                {
+                    lastSceneObject.dispose();
+                }
+            }
+
             $(document).ready(function()
             {
                 setupScene();
 
+                // Toggle usage of the instanced material on and off
                 $("#enable_instancing").change(function()
                 {
                     let material = (this.checked === true ? "flash_instanced" : "flash");
@@ -75,15 +81,18 @@
                     scene.frameStats.flush();
                 });
 
+                // Adjust the number of flashing quads in the scene
                 $("#param_objectcount").on("input", function() 
                 {
-                    let value = Clamp($("#param_objectcount").val(), 0, 50000);
+                    // Clamp/sanitize the value
+                    let value = Utils.clamp($("#param_objectcount").val(), 0, 500000);
                     $("#param_objectcount").val(value);
 
                     let difference = (value - scene.sceneObjects.length);
 
                     if(difference > 0)
                     {
+                        // Spawn a number of quads
                         while(difference--)
                         {
                             spawnQuad();
@@ -91,6 +100,7 @@
                     }
                     else if(difference < 0)
                     {
+                        // Remove a number of quads
                         while(difference++)
                         {
                             removeQuad();
@@ -142,7 +152,7 @@
                     </tr>
                     <tr>
                         <td>objects</td>
-                        <td><input id="param_objectcount" type="number" name="quantity" min="0" max="50000" value="20000"></td>
+                        <td><input id="param_objectcount" type="number" name="quantity" min="0" max="500000" value="50000"></td>
                     </tr>
                 </table>
             </div>

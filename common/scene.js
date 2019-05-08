@@ -1,5 +1,6 @@
 /**
- * Contains and manages the objects which compose a visual scene.
+ * Contains and manages the objects which compose a simulation/game scene.
+ * Also responsible for running the main loop which triggers logic updates and rendering.
  */
 class Scene
 {
@@ -10,21 +11,36 @@ class Scene
         this.sceneObjects  = [];
         this.lastFrameTime = 0.0;
         this.deltaTime     = 0.0;
+        this.shouldRun     = true;
     }
 
+    /**
+     * Sets up the shaders, materials, and meshes used by the scene.
+     * Should be extended by specialized Scene implementations.
+     */
     setup()
     {
         this.buildDefaultShaders();
         this.buildDefaultMaterials();
-        
-        this.buildQuadMesh();
+        this.buildDefaultMeshes();
 
         this.renderer.camera = new Camera(this.renderer); 
     }
 
+    /**
+     * Begins the simulation/game loop.
+     */
     start()
     {
         requestAnimationFrame(()=>this.frame());
+    }
+
+    /**
+     * Stops the simulation/game loop.
+     */
+    stop()
+    {
+        this.shouldRun = false;
     }
 
     /**
@@ -37,17 +53,10 @@ class Scene
      */
     buildDefaultShaders()
     {
-        let shaderFlat = new Shader(this.renderer.context, shader_flat_vs, null, shader_flat_fs);
-        this.renderer.shaders.set("flat", shaderFlat);
-
-        let shaderFlatInstanced = new Shader(this.renderer.context, shader_flat_instanced_vs, null, shader_flat_fs);
-        this.renderer.shaders.set("flat_instanced", shaderFlatInstanced);
-
-        let shaderFlash = new Shader(this.renderer.context, shader_flash_vs, null, shader_flat_fs);
-        this.renderer.shaders.set("flash", shaderFlash);
-
-        let shaderFlashInstanced = new Shader(this.renderer.context, shader_flash_instanced_vs, null, shader_flat_fs);
-        this.renderer.shaders.set("flash_instanced", shaderFlashInstanced);
+        new Shader(this.renderer.context, "flat", shader_flat_vs, null, shader_flat_fs);
+        new Shader(this.renderer.context, "flat_instanced", shader_flat_instanced_vs, null, shader_flat_fs);
+        new Shader(this.renderer.context, "flash", shader_flash_vs, null, shader_flat_fs);
+        new Shader(this.renderer.context, "flash_instanced", shader_flash_instanced_vs, null, shader_flat_fs);
     }
 
     /**
@@ -62,26 +71,25 @@ class Scene
     {
         let materialDefault = new Material(this.renderer, "default", "flat");
         materialDefault.enableProperty("Color", [1.0, 1.0, 1.0, 1.0],);
-        this.renderer.materials.set(materialDefault.name, materialDefault);
 
         let materialDefaultInstanced = new Material(this.renderer, "default_instanced", "flat_instanced", true);
         materialDefaultInstanced.enableProperty("Color", [1.0, 1.0, 1.0, 1.0]);
-        this.renderer.materials.set(materialDefaultInstanced.name, materialDefaultInstanced);
         
         let materialFlash = new Material(this.renderer, "flash", "flash");
         materialFlash.enableProperty("StartColor", [0.0, 0.0, 0.0, 1.0]);
         materialFlash.enableProperty("EndColor", [1.0, 1.0, 1.0, 1.0]);
-        this.renderer.materials.set(materialFlash.name, materialFlash);
         
         let materialFlashInstanced = new Material(this.renderer, "flash_instanced", "flash_instanced", true);
         materialFlashInstanced.enableProperty("StartColor", [0.0, 0.0, 0.0, 1.0]);
         materialFlashInstanced.enableProperty("EndColor", [1.0, 1.0, 1.0, 1.0]);
-        this.renderer.materials.set(materialFlashInstanced.name, materialFlashInstanced);
     }
 
-    buildQuadMesh()
+    /**
+     * Builds the basic unit square quad mesh.
+     */
+    buildDefaultMeshes()
     {
-        let quad = new Mesh();
+        let quad = new Mesh(this.renderer.context, "quad");
 
         quad.vertices.push(new Vertex(-0.5, -0.5, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, -1.0, 0.0, 0.0), 
                            new Vertex( 0.5, -0.5, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, -1.0, 1.0, 0.0), 
@@ -91,29 +99,42 @@ class Scene
         quad.indices.push(0, 1, 2, 
                           2, 3, 0)
 
-        quad.build(this.renderer.context);
-
-        this.renderer.meshes.set("quad", quad);
+        quad.build();
     }
 
+    /**
+     * A single frame of the simulation/game. Performs the folowing:
+     * 
+     *     1. Calculates frame delta time
+     *     2. Invokes the `update` method of each `SceneObject`
+     *     3. Invokes the `preRenderer` method of each `SceneObject`
+     *     4. Invokes the `drawScene` method of the `Renderer`
+     *     5. Calculates and reports the frame stats
+     *     6. Requests another frame to be executed
+     * 
+     * @param {*} elapsedTime 
+     */
     frame(elapsedTime)
     {
+        // Calculate frame delta time in milliseconds
         if(isNaN(elapsedTime))
         {
             elapsedTime = performance.now();
         }
 
-        elapsedTime *= 0.001;                   // Convert to ms
+        elapsedTime *= 0.001;
 
         this.deltaTime     = elapsedTime - this.lastFrameTime;
         this.lastFrameTime = elapsedTime;
 
+        // Update each object
         for(var i = 0; i < this.sceneObjects.length; ++i)
         {
             var sceneObject = this.sceneObjects[i];
             sceneObject.update(this.deltaTime);
         }
 
+        // Prerender each object
         for(var i = 0; i < this.sceneObjects.length; ++i)
         {
             if(this.sceneObjects[i].visible)
@@ -122,11 +143,17 @@ class Scene
             }
         }
 
+        // Draw the scene
         let drawStats = this.renderer.drawScene(0, this.frameStats.timeElapsed, this.deltaTime);
 
+        // Update frame stats
         this.frameStats.endFrame(this.deltaTime, drawStats[0], drawStats[1]);
         this.frameStats.report();
 
-        requestAnimationFrame(()=>this.frame());
+        // Request another frame if we are still running
+        if(this.shouldRun === true)
+        {
+            requestAnimationFrame(()=>this.frame());
+        }
     }
 }

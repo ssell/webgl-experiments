@@ -9,7 +9,7 @@
             "type": "chrome",
             "request": "launch",
             "sourceMaps": false,
-            "file": "${workspaceRoot}/demos/instancing/index.html",
+            "file": "${workspaceRoot}/experiments/instancing/index.html",
             "runtimeArgs": ["--allow-file-access-from-files"]
         }
     ]

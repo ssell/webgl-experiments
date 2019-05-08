@@ -4,11 +4,12 @@ class RendererableComponent
     {
         this.parent             = sceneObject;
         this.renderer           = renderer;
+        this.context            = renderer.context;
         this.renderIndex        = -1;
-        this._materialName      = this.renderer.defaultMaterial;
-        this._materialReference = this.renderer.materials.get(this._materialName);
-        this._meshName          = this.renderer.defaultMesh;
-        this._meshReference     = this.renderer.meshes.get(this.meshName);
+        this._materialName      = this.context.resources.defaultMaterial;
+        this._materialReference = this.context.resources.getMaterial(this._materialName);
+        this._meshName          = this.context.resources.defaultMesh;
+        this._meshReference     = this.context.resources.getMesh(this.meshName);
         this.materialProps      = new MaterialPropertyBlock(this);
         this.bucketIndex        = -1;
         this.bucketEntryIndex   = -1;
@@ -23,20 +24,24 @@ class RendererableComponent
             return true;
         }
 
-        this._materialReference.removeRenderableReference(this);
-
-        if(!this.renderer.materials.has(newMaterialName))
+        // Remove this renderable from the current material
+        if(this._materialReference != null)
         {
-            this._materialReference = null;
-            return false;
+            this._materialReference.removeRenderableReference(this);
         }
-        
-        this._materialName = newMaterialName;
-        this._materialReference = this.renderer.materials.get(this._materialName);
-        this._materialReference.addRenderableReference(this);
-        this.materialProps.map();
 
-        return true;
+        // Get the new material
+        this._materialName = newMaterialName;
+        this._materialReference = this.context.resources.getMaterial(this._materialName);
+
+        // Add this renderable to the new material
+        if(this._materialReference != null)
+        {
+            this._materialReference.addRenderableReference(this);
+            this.materialProps.map();
+        }
+
+        return (this._materialReference != null);
     }
 
     get material()
@@ -50,20 +55,17 @@ class RendererableComponent
         {
             return true;
         }
-        
-        if(!this.renderer.materials.has(newMeshName))
-        {
-            return false;
-        }
 
         this._meshName = newMeshName;
-        this._meshReference = this.renderer.meshes.get(this._meshName);
+        this._meshReference = this.context.resources.getMesh(this._meshName);
         
-        if(this._materialReference != null)
+        if((this._meshReference != null) && (this._materialReference != null))
         {
             this._materialReference.removeRenderableReference(this);
             this._materialReference.addRenderableReference(this);
         }
+
+        return (_meshReference != null);
     }
 
     get mesh()
@@ -100,7 +102,6 @@ class SceneObject
         this.renderable    = new RendererableComponent(this, renderer);
         this.visible       = true;
         this.materialProps = new MaterialPropertyBlock(this);
-        this.elapsed       = 0.0;
     }
 
     dispose()
@@ -110,7 +111,7 @@ class SceneObject
 
     update(delta)
     {
-        this.elapsed += delta;
+        
     }
 
     preRender()
@@ -133,9 +134,9 @@ class QuadObject extends SceneObject
     {
         super(renderer);
 
-        this.renderable.material = this.renderable.renderer.defaultInstancedMaterial;
+        this.renderable.material = this.renderable.context.resources.defaultInstancedMaterial;
         this.propColor = this.renderable.materialProps.getPropertyIndex("Color");
-        this.renderable.materialProps.setProperty(this.propColor, [GetRandom(0, 1), GetRandom(0, 1), GetRandom(0, 1), 1.0]);
+        this.renderable.materialProps.setProperty(this.propColor, [Utils.getRandom(0, 1), Utils.getRandom(0, 1), Utils.getRandom(0, 1), 1.0]);
     }
 }
 
@@ -153,8 +154,6 @@ class FlashingQuad extends QuadObject
 
     update(delta)
     {
-        super.update(delta);
-
         this.transform.translate(0.0, delta, 0.0);
 
         if(this.transform.position[1] > 20)

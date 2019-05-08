@@ -421,20 +421,20 @@ class MaterialPropertyRecord
  *     - VertexNormal (Attribute)
  *     - VertexUV (Attribute)
  */
-class Material
+class Material extends Resource
 {
-    constructor(renderer, materialName, shaderName, instanced = false)
+    constructor(renderer, name, shaderName, instanced = false)
     {
+        super(renderer.context, name, ResourceType.Material);
+        
         this.renderer        = renderer;
-        this.name            = materialName;
-        this.shader          = renderer.shaders.get(shaderName);
+        this.shader          = this.context.resources.getShader(shaderName);
         this._instanced      = instanced;
         this.uniforms        = new Map();
-        this.references      = 0;
         this.properties      = [];
         this.propertyBuckets = new Map();
         
-        this.addPropertyBucket(this.renderer.defaultMesh);
+        this.addPropertyBucket(this.context.resources.defaultMesh);
         this.enableProperty("ModelMatrix", mat4.create());
     }
 
@@ -544,11 +544,11 @@ class Material
 
         if(!this.instanced)
         {
-            location = this.renderer.context.gl.getUniformLocation(this.shader.shaderProgram, name);
+            location = this.context.gl.getUniformLocation(this.shader.shaderProgram, name);
         }
         else
         {
-            location = this.renderer.context.gl.getAttribLocation(this.shader.shaderProgram, name);
+            location = this.context.gl.getAttribLocation(this.shader.shaderProgram, name);
         }
 
         if(location === -1)
@@ -558,7 +558,7 @@ class Material
         }
 
         // Add the property
-        let property = new MaterialPropertyRecord(this.renderer.context, name, defaultValue, size, location);
+        let property = new MaterialPropertyRecord(this.context, name, defaultValue, size, location);
         this.properties.push(property);
         
         if(this.instanced)
@@ -591,7 +591,7 @@ class Material
      */
     setUniformFloat(name, value)
     {
-        this.setUniform(name, value, 1, this.renderer.context.gl.FLOAT);
+        this.setUniform(name, value, 1, this.context.gl.FLOAT);
     }
 
     /**
@@ -602,7 +602,7 @@ class Material
      */
     setUniformVec2(name, value)
     {
-        this.setUniform(name, value, 2, this.renderer.context.gl.FLOAT);
+        this.setUniform(name, value, 2, this.context.gl.FLOAT);
     }
 
     /**
@@ -613,7 +613,7 @@ class Material
      */
     setUniformVec3(name, value)
     {
-        this.setUniform(name, value, 3, this.renderer.context.gl.FLOAT);
+        this.setUniform(name, value, 3, this.context.gl.FLOAT);
     }
 
     /**
@@ -624,7 +624,7 @@ class Material
      */
     setUniformVec4(name, value)
     {
-        this.setUniform(name, value, 4, this.renderer.context.gl.FLOAT);
+        this.setUniform(name, value, 4, this.context.gl.FLOAT);
     }
 
     /**
@@ -648,14 +648,13 @@ class Material
      */
     setUniform(name, value, size, type)
     {
-        this.uniforms.set(name, new MaterialPropertyUniform(this.shader, name, value, type, size, this.renderer.context));
+        this.uniforms.set(name, new MaterialPropertyUniform(this.shader, name, value, type, size, this.context));
     }
 
     /**
      * Binds the underlying shader as the active shader, and then assigns the defined uniform and attribute properties.
      * This should be used only for non-instanced materials. For instanced rendering, use `bindInstanced`.
      * 
-     * @param {*} context 
      * @param {*} sceneObject Individual SceneObject which will be rendered with this material.
      */
     bind()
@@ -666,7 +665,7 @@ class Material
             return false;
         }
 
-        if(!this.shader.bind(this.renderer.context))
+        if(!this.shader.bind())
         {
             return false;
         }
@@ -698,10 +697,9 @@ class Material
      * However for instanced rendering (this method) we are responsible for also updating the instaced data buffers
      * for our shader program.
      * 
-     * @param {*} context 
      * @param {*} sceneObjects Array of SceneObjects that will be rendered with this material in this instance.
      */
-    bindInstancedOld(context, sceneObjects)
+    bindInstancedOld(sceneObjects)
     {
         if(this.shader == null)
         {
@@ -709,7 +707,7 @@ class Material
             return false;
         }
 
-        if(!this.shader.bind(this.renderer.context))
+        if(!this.shader.bind())
         {
             return false;
         }
@@ -754,8 +752,8 @@ class Material
 
             let float32Array = Float32Array.from(propertyArrays[i]);
 
-            context.gl.bindBuffer(context.gl.ARRAY_BUFFER, property.buffer);
-            context.gl.bufferData(context.gl.ARRAY_BUFFER, float32Array, context.gl.STATIC_DRAW);
+            this.context.gl.bindBuffer(this.context.gl.ARRAY_BUFFER, property.buffer);
+            this.context.gl.bufferData(this.context.gl.ARRAY_BUFFER, float32Array, this.context.gl.STATIC_DRAW);
 
             switch(property.size)
             {
@@ -763,51 +761,49 @@ class Material
                 case 2:    // vec2
                 case 3:    // vec3
                 case 4:    // vec4
-                    context.gl.vertexAttribPointer(property.location, property.size, context.gl.FLOAT, false, 0, 0);
-                    context.gl.enableVertexAttribArray(property.location);
-                    context.gl.vertexAttribDivisor(property.location, 1);
+                    this.context.gl.vertexAttribPointer(property.location, property.size, this.context.gl.FLOAT, false, 0, 0);
+                    this.context.gl.enableVertexAttribArray(property.location);
+                    this.context.gl.vertexAttribDivisor(property.location, 1);
                     break;
 
                 case 9:    // mat3
-                    context.gl.vertexAttribPointer(property.location + 0, 4, context.gl.FLOAT, false, 36, 0);     // 3 columns, 12 bytes per column
-                    context.gl.vertexAttribPointer(property.location + 1, 4, context.gl.FLOAT, false, 36, 12);
-                    context.gl.vertexAttribPointer(property.location + 2, 4, context.gl.FLOAT, false, 36, 24);
+                    this.context.gl.vertexAttribPointer(property.location + 0, 4, this.context.gl.FLOAT, false, 36, 0);     // 3 columns, 12 bytes per column
+                    this.context.gl.vertexAttribPointer(property.location + 1, 4, this.context.gl.FLOAT, false, 36, 12);
+                    this.context.gl.vertexAttribPointer(property.location + 2, 4, this.context.gl.FLOAT, false, 36, 24);
                     
-                    context.gl.enableVertexAttribArray(property.location + 0);
-                    context.gl.enableVertexAttribArray(property.location + 1);
-                    context.gl.enableVertexAttribArray(property.location + 2);
+                    this.context.gl.enableVertexAttribArray(property.location + 0);
+                    this.context.gl.enableVertexAttribArray(property.location + 1);
+                    this.context.gl.enableVertexAttribArray(property.location + 2);
 
-                    context.gl.vertexAttribDivisor(property.location + 0, 1);
-                    context.gl.vertexAttribDivisor(property.location + 1, 1);
-                    context.gl.vertexAttribDivisor(property.location + 2, 1);
+                    this.context.gl.vertexAttribDivisor(property.location + 0, 1);
+                    this.context.gl.vertexAttribDivisor(property.location + 1, 1);
+                    this.context.gl.vertexAttribDivisor(property.location + 2, 1);
                     break;
 
                 case 16:   // mat4
-                    context.gl.vertexAttribPointer(property.location + 0, 4, context.gl.FLOAT, false, 64, 0);     // 4 columns, 16 bytes per column
-                    context.gl.vertexAttribPointer(property.location + 1, 4, context.gl.FLOAT, false, 64, 16);
-                    context.gl.vertexAttribPointer(property.location + 2, 4, context.gl.FLOAT, false, 64, 32);
-                    context.gl.vertexAttribPointer(property.location + 3, 4, context.gl.FLOAT, false, 64, 48);
+                    this.context.gl.vertexAttribPointer(property.location + 0, 4, this.context.gl.FLOAT, false, 64, 0);     // 4 columns, 16 bytes per column
+                    this.context.gl.vertexAttribPointer(property.location + 1, 4, this.context.gl.FLOAT, false, 64, 16);
+                    this.context.gl.vertexAttribPointer(property.location + 2, 4, this.context.gl.FLOAT, false, 64, 32);
+                    this.context.gl.vertexAttribPointer(property.location + 3, 4, this.context.gl.FLOAT, false, 64, 48);
                     
-                    context.gl.enableVertexAttribArray(property.location + 0);
-                    context.gl.enableVertexAttribArray(property.location + 1);
-                    context.gl.enableVertexAttribArray(property.location + 2);
-                    context.gl.enableVertexAttribArray(property.location + 3);
+                    this.context.gl.enableVertexAttribArray(property.location + 0);
+                    this.context.gl.enableVertexAttribArray(property.location + 1);
+                    this.context.gl.enableVertexAttribArray(property.location + 2);
+                    this.context.gl.enableVertexAttribArray(property.location + 3);
 
-                    context.gl.vertexAttribDivisor(property.location + 0, 1);
-                    context.gl.vertexAttribDivisor(property.location + 1, 1);
-                    context.gl.vertexAttribDivisor(property.location + 2, 1);
-                    context.gl.vertexAttribDivisor(property.location + 3, 1);
+                    this.context.gl.vertexAttribDivisor(property.location + 0, 1);
+                    this.context.gl.vertexAttribDivisor(property.location + 1, 1);
+                    this.context.gl.vertexAttribDivisor(property.location + 2, 1);
+                    this.context.gl.vertexAttribDivisor(property.location + 3, 1);
                     break;
             }
         }
     }
 
     /**
-     * Cleans up actions done during `bindInstanced` so future materials are not affected.
-     * 
-     * @param {*} context 
+     * Cleans up actions done during `bindInstanced` so future materials are not affected. 
      */
-    unbindInstanced(context)
+    unbindInstanced()
     {
         for(let i = 0; i < this.properties.length; ++i)
         {
@@ -816,7 +812,7 @@ class Material
 
             for(let j = 0; j < propertyLocationCount; ++j)
             {
-                context.gl.vertexAttribDivisor(property.location + j, 0);
+                this.context.gl.vertexAttribDivisor(property.location + j, 0);
             }
         }
     }
@@ -852,23 +848,23 @@ class Material
             switch(property.size)
             {
                 case 1:
-                this.renderer.context.gl.uniform1fv(property.location, value);
+                this.context.gl.uniform1fv(property.location, value);
                 break;
 
                 case 2:
-                this.renderer.context.gl.uniform2fv(property.location, value);
+                this.context.gl.uniform2fv(property.location, value);
                 break;
 
                 case 3:
-                this.renderer.context.gl.uniform3fv(property.location, value);
+                this.context.gl.uniform3fv(property.location, value);
                 break;
 
                 case 4:
-                this.renderer.context.gl.uniform4fv(property.location, value);
+                this.context.gl.uniform4fv(property.location, value);
                 break;
 
                 case 16:
-                this.renderer.context.gl.uniformMatrix4fv(property.location, false, value);
+                this.context.gl.uniformMatrix4fv(property.location, false, value);
                 break;
             }
         }
@@ -1002,6 +998,13 @@ class MaterialPropertyBlock
 
     setProperty(index, value)
     {
+        // So, according to the Chrome profiler this is the current bottleneck in the instanced rendering pipeline.
+        // One potential change is making it so that instead of storing the property value here, we instead treat
+        // the MaterialPropertyBlock has a pass-thru to the PropertyBucket.
+        // Especially since we update the property here, then later on we update the renderable reference and we just
+        // copy the data sitting here into the bucket anyways. So why not just pass it on directly? And then the
+        // update functionality of the bucket holder won't be needed anymore too.
+        
         if((index < 0) || (index >= this.propertyValues.length))
         {
             return;
