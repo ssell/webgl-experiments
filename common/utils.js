@@ -104,6 +104,124 @@ class Utils
     }
 }
 
+/**
+ * Implementation of a list that does not decrease in size.
+ */
+class FixedList
+{
+    constructor()
+    {
+        this.contents = [];
+        this.occupied = [];
+        this.count    = 0;
+    }
+
+    /**
+     * Adds the object to the list and returns it's index.
+     * 
+     * @param {*} object 
+     */
+    add(object)
+    {
+        let index = -1;
+
+        // If there is available space in the list already
+        if(this.count < this.contents.length)
+        {
+            // Find the first open index
+            index = this.occupied.indexOf(false);
+            this._insert(index);
+        }
+        else
+        {
+            // No open room in the list, push to back
+            index = this._push(object);
+        }
+
+        return index;
+    }
+
+    addGroup(objects)
+    {
+        // First see if we have a vacant block long enough to hold all of the objects
+        if(this.count < (this.contents.length - objects.length))
+        {
+            let consecutiveVacant = 0;
+            let consecutiveStartIndex = 0;
+
+            for(let i = 0; (i < this.contents.length) && (consecutiveVacant < objects.length); ++i)
+            {
+                // As we traverse the occupied list, increment the count of consecutive vacancies
+                if(this.occupied[i] == false)
+                {
+                    if(consecutiveVacant == 0)
+                    {
+                        consecutiveStartIndex = i;
+                    }
+
+                    consecutiveVacant++;
+                }
+                else
+                {
+                    consecutiveVacant = 0;
+                }
+            }
+
+            // Found a block of N vacancies?
+            if(consecutiveVacant == objects.length)
+            {
+                for(let i = 0; i < objects.length; ++i)
+                {
+                    this._insert(objects[i], consecutiveStartIndex + i);
+                }
+
+                return consecutiveStartIndex;
+            }
+        }
+
+        // Could not find a consecutive block, so push the entire group
+        return this._pushGroup(objects);
+    }
+
+    remove(index)
+    {
+        this.occupied[index] = false;
+    }
+
+    get(index)
+    {
+        return this.contents[index];
+    }
+
+    _insert(object, index)
+    {
+        this.occupied[index] = true;
+        this.contents[index] = object;
+        this.count++;
+    }
+
+    _push(object)
+    {
+        this.contents.push(object);
+        this.occupied.push(true);
+        this.count++;
+
+        return (this.contents.length - 1);
+    }
+
+    _pushGroup(objects)
+    {
+        let firstIndex = this.contents.length;
+
+        for(let i = 0; i < objects.length; ++i)
+        {
+            this._push(objects[i]);
+        }
+
+        return firstIndex;
+    }
+}
+
 class Rectangle
 {
     constructor(x = 0, y = 0, width = 0, height = 0)
@@ -112,5 +230,57 @@ class Rectangle
         this.y      = y;
         this.width  = width;
         this.height = height;
+    }
+}
+
+class AABB
+{
+    /**
+     * 
+     * @param {*} parent   Parent RenderableComponent that owns this AABB.
+     * @param {*} xExtents The half extents along the x-axis.
+     * @param {*} yExtents The half extents along the y-axis.
+     */
+    constructor(xExtents = 0.5, yExtents = 0.5, zExtents = 0.5)
+    {
+        this.center   = [ 0, 0, 0 ];
+        this.extents  = [ xExtents, yExtents, zExtents ];
+    }
+
+    intersectsAABB(other)
+    {
+        let thisMin = [this.center[0] - this.extents[0], this.center[1] - this.extents[1], this.center[2] - this.extents[2] ];
+        let thisMax = [this.center[0] + this.extents[0], this.center[1] + this.extents[1], this.center[2] + this.extents[2] ];
+
+        let otherMin = [other.center[0] - other.extents[0], other.center[1] - other.extents[1], other.center[2] - other.extents[2] ];
+        let otherMax = [other.center[0] + other.extents[0], other.center[1] + other.extents[1], other.center[2] + other.extents[2] ];
+
+        return !((thisMin.x > otherMax.x) || (otherMin.x > thisMax.x) ||
+                 (thisMin.y > otherMax.y) || (otherMin.y > thisMax.y) ||
+                 (thisMin.z > otherMax.z) || (otherMin.z > thisMax.z));
+    }
+
+    intersectsRect(rectangle)
+    {
+        const rectHalfX = rectangle.width / 2;
+        const rectHalfY = rectangle.height / 2;
+
+        let rectAABB = new AABB(rectHalfX, rectHalfY, Number.MAX_VALUE);
+        rectAABB.center[0] = rectangle.x + rectHalfX;
+        rectAABB.center[1] = rectangle.y + rectHalfY;
+
+        return this.intersectsAABB(rectAABB);
+    }
+
+    intersects(x, y, width, height)
+    {
+        const halfX = width / 2;
+        const halfY = height / 2;
+
+        let rectAABB = new AABB(halfX, halfY, Number.MAX_VALUE);
+        rectAABB.center[0] = x + halfX;
+        rectAABB.center[1] = y + halfY;
+
+        return this.intersectsAABB(rectAABB);
     }
 }

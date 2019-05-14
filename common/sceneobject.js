@@ -3,6 +3,7 @@ class RendererableComponent
     constructor(sceneObject, renderer)
     {
         this.parent             = sceneObject;
+        this.id                 = -1;
         this.renderer           = renderer;
         this.context            = renderer.context;
         this.renderIndex        = -1;
@@ -13,6 +14,7 @@ class RendererableComponent
         this.materialProps      = new MaterialPropertyBlock(this);
         this.bucketIndex        = -1;
         this.bucketEntryIndex   = -1;
+        this.aabb               = new AABB(0.5, 0.5, 0.5);
         
         this._materialReference.addRenderableReference(this);
     }

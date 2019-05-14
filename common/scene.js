@@ -31,7 +31,10 @@ class Scene
 
     addSceneObject(sceneObject)
     {
-        this._sceneObjects[Scene._nextId()] = sceneObject;
+        let id = Scene._nextId();
+        sceneObject.id = id;
+        
+        this._sceneObjects[id] = sceneObject;
     }
 
     removeSceneObject(id)
