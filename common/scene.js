@@ -4,6 +4,8 @@
  */
 class Scene
 {
+    _sceneObjects = {};
+
     constructor(canvasId)
     {
         this.renderer      = new Renderer(canvasId);
@@ -25,6 +27,26 @@ class Scene
         this.buildDefaultMeshes();
 
         this.renderer.camera = new Camera(this.renderer); 
+    }
+
+    addSceneObject(sceneObject)
+    {
+        this._sceneObjects[Scene._nextId()] = sceneObject;
+    }
+
+    removeSceneObject(id)
+    {
+        delete this._sceneObjects[id];
+    }
+
+    getSceneObject(id)
+    {
+        return this._sceneObjects[id];
+    }
+
+    static _nextId()
+    {
+        return this.nextId++;
     }
 
     /**
@@ -157,3 +179,5 @@ class Scene
         }
     }
 }
+
+SceneObject.nextId = 0;

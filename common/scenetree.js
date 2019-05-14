@@ -70,10 +70,12 @@ class SceneList extends SceneTree
  */
 class QuadTreeNode
 {
-    constructor()
+    constructor(x, y)
     {
-        this.firstChild = -1;    // Points to either the first child QuadTreeNode index (branch) or to the first child QuadTreeObjectNode (leaf).
-        this.numElements = 0;    // Number of elements referenced by this node. If 0, this is a branch. If > 0, this is a leaf.
+        this.firstChild  = -1;    // Points to either the first child QuadTreeNode index (branch) or to the first child QuadTreeObjectNode (leaf).
+        this.numElements = 0;    // Number of elements referenced by this node. If -1, this is a branch. Otherwise, this is a leaf.
+        this.centerX     = 0;
+        this.centerY     = 0;
     }
 }
 
@@ -111,15 +113,15 @@ class QuadTreeObjectNode
  */
 class QuadTree extends SceneTree
 {
-    constructor(width, height, maxDepth = 3)
+    constructor(scene, width, height, maxDepth = 3)
     {
         super();
 
-        this.width        = width;
-        this.height       = height;
-        this.maxDepth     = maxDepth;
-        this.sceneObjects = [];
-        this.quadNodes    = [ new QuadTreeNode() ];
+        this.scene     = scene; 
+        this.width     = width;
+        this.height    = height;
+        this.maxDepth  = maxDepth;
+        this.quadNodes = [ new QuadTreeNode(width / 2, height / 2) ];
     }
 
     add(sceneObject)
@@ -144,6 +146,27 @@ class QuadTree extends SceneTree
     }
 
     _insertObject(sceneObject)
+    {
+        let toTraverse = [ { node: this.quadNodes[0] } ];
+
+        while(toTraverse.length > 0)
+        {
+            if(toTraverse[0].numElements != -1)
+            {
+                // If this is a leaf
+                this._addObjectToNode(toTraverse[0], sceneObject);
+            }
+            else
+            {
+                // This is a branch node. Check the children.
+                //let nodeX = 
+            }
+
+            toTraverse.pop();
+        }
+    }
+
+    _addObjectToNode(node, sceneObject)
     {
 
     }
