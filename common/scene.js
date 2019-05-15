@@ -11,6 +11,7 @@ class Scene
         this.renderer      = new Renderer(canvasId);
         this.frameStats    = new FrameStats(this.renderer.context);
         this.sceneObjects  = [];
+        this.sceneTree     = new QuadTree(this, this.renderer.context.gl.canvas.clientWidth, this.renderer.context.gl.canvas.clientHeight, 3);
         this.lastFrameTime = 0.0;
         this.deltaTime     = 0.0;
         this.shouldRun     = true;
@@ -35,6 +36,7 @@ class Scene
         sceneObject.id = id;
         
         this._sceneObjects[id] = sceneObject;
+        this.sceneTree.add(sceneObject);
     }
 
     removeSceneObject(id)

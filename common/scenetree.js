@@ -130,7 +130,7 @@ class QuadTree extends SceneTree
 
     add(sceneObject)
     {
-        
+        this._insertObject(sceneObject);
     }
 
     remove(sceneObject)
@@ -141,6 +141,50 @@ class QuadTree extends SceneTree
     update()
     {
 
+    }
+
+    /**
+     * Traverses the tree structure and prints it to console
+     */
+    debugTraverse()
+    {
+        var orderedNodes = [];
+        this._buildOrderedNodes(orderedNodes, 0);
+
+        var output  = "";
+
+        for(let i = 0; i < orderedNodes.length; ++i)
+        {
+            let numElements = orderedNodes[i].node.numElements;
+            let nodeId = orderedNodes[i].id;
+
+            if(numElements == -1)
+            {
+                let first = orderedNodes[i].node.firstChild;
+                output += `B:${nodeId} (ul:${first}, ur:${first + 1}, lr:${first + 2}, ll:${first + 3})\n`;
+            }
+            else 
+            {
+                output += `L:${nodeId} (${numElements})\n`;
+            }
+        }
+
+        return output;
+    }
+
+    _buildOrderedNodes(orderedNodes, current)
+    {
+        let node = this.quadNodes.get(current);
+
+        orderedNodes.push({ node: node, id: current });
+
+        if((node.firstChild != -1) && (node.numElements == -1))
+        {
+            this._buildOrderedNodes(orderedNodes, node.firstChild + 0);
+            this._buildOrderedNodes(orderedNodes, node.firstChild + 1);
+            this._buildOrderedNodes(orderedNodes, node.firstChild + 2);
+            this._buildOrderedNodes(orderedNodes, node.firstChild + 3);
+        }
     }
 
     _insertObject(sceneObject, startNode = null)
@@ -180,10 +224,10 @@ class QuadTree extends SceneTree
             else
             {
                 // This is a branch node. Check the children.
-                let ul = this.quadNodes.get(current.firstChild + 0);       // Upper left child node
-                let ur = this.quadNodes.get(current.firstChild + 1);       // Upper right child node
-                let lr = this.quadNodes.get(current.firstChild + 2);       // Lower right child node
-                let ll = this.quadNodes.get(current.firstChild + 3);       // Lower left child node
+                let ul = this.quadNodes.get(currentNode.firstChild + 0);       // Upper left child node
+                let ur = this.quadNodes.get(currentNode.firstChild + 1);       // Upper right child node
+                let lr = this.quadNodes.get(currentNode.firstChild + 2);       // Lower right child node
+                let ll = this.quadNodes.get(currentNode.firstChild + 3);       // Lower left child node
 
                 if(aabb.intersects(ul.center[0], ul.center[1], currentWidth, currentHeight))
                 {
