@@ -52,7 +52,7 @@
 
                 let quad = new FlashingQuad(scene.renderer, startColor, endColor);
                 quad.translate(Utils.getRandom(-25, 25), Utils.getRandom(-25, 25), (Utils.getRandom(-75, 0)));
-                scene.sceneObjects.push(quad);
+                scene.addSceneObject(quad);
             }
 
             function removeQuad()

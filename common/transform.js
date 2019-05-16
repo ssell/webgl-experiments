@@ -31,6 +31,7 @@ class Transform
     set scale(value)
     {
         this._scale = value;
+        mat4.scale(this._modelMatrix, this._modelMatrix, value);
         this.mmDirty = true;
     }
 

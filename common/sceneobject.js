@@ -10,7 +10,7 @@ class RendererableComponent
         this._materialName      = this.context.resources.defaultMaterial;
         this._materialReference = this.context.resources.getMaterial(this._materialName);
         this._meshName          = this.context.resources.defaultMesh;
-        this._meshReference     = this.context.resources.getMesh(this.meshName);
+        this._meshReference     = this.context.resources.getMesh(this._meshName);
         this.materialProps      = new MaterialPropertyBlock(this);
         this.bucketIndex        = -1;
         this.bucketEntryIndex   = -1;
@@ -117,6 +117,11 @@ class SceneObject
         this.renderable.aabb.center = this.transform.position;
     }
 
+    scale(x, y, z)
+    {
+        this.transform.scale = [x, y, z];
+    }
+
     update(delta)
     {
         
@@ -143,8 +148,7 @@ class QuadObject extends SceneObject
         super(renderer);
 
         this.renderable.material = this.renderable.context.resources.defaultInstancedMaterial;
-        this.propColor = this.renderable.materialProps.getPropertyIndex("Color");
-        this.renderable.materialProps.setProperty(this.propColor, [Utils.getRandom(0, 1), Utils.getRandom(0, 1), Utils.getRandom(0, 1), 1.0]);
+        this.renderable.materialProps.setPropertyByName("Color", [Utils.getRandom(0, 1), Utils.getRandom(0, 1), Utils.getRandom(0, 1), 1.0]);
     }
 }
 

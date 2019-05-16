@@ -4,14 +4,15 @@
  */
 class Scene
 {
-    _sceneObjects = {};
+    // Use map with integer keys as they traverse faster than dictionaries
+    // https://jsperf.com/dict-map-iteration-performance
+    _sceneObjects = new Map();
 
     constructor(canvasId)
     {
         this.renderer      = new Renderer(canvasId);
         this.frameStats    = new FrameStats(this.renderer.context);
-        this.sceneObjects  = [];
-        this.sceneTree     = new QuadTree(this, 50, 50, 0, 0, 3);
+        this.sceneTree     = null;
         this.lastFrameTime = 0.0;
         this.deltaTime     = 0.0;
         this.shouldRun     = true;
@@ -30,23 +31,53 @@ class Scene
         this.renderer.camera = new Camera(this.renderer); 
     }
 
+    setSceneTree(sceneTree)
+    {
+        if(sceneTree === null)
+        {
+            return;
+        }
+
+        if(this.sceneTree != null)
+        {
+            this.sceneTree.destroy();
+        }
+
+        this.sceneTree = sceneTree;
+        this.sceneTree.setScene(this);
+
+        for(let[id, sceneObject] of this._sceneObjects)
+        {
+            this.sceneTree.add(sceneObject);
+        }
+    }
+
     addSceneObject(sceneObject)
     {
         let id = Scene._nextId();
         sceneObject.id = id;
         
-        this._sceneObjects[id] = sceneObject;
-        this.sceneTree.add(sceneObject);
+        this._sceneObjects.set(id, sceneObject);
+        
+        if(this.sceneTree != null)
+        {
+            this.sceneTree.add(sceneObject);
+        }
     }
 
     removeSceneObject(id)
     {
-        delete this._sceneObjects[id];
+        this._sceneObjects.remove(id);
+
+        if(this.sceneTree != null)
+        {
+            this.sceneTree.remove(sceneObject);
+        }
     }
 
     getSceneObject(id)
     {
-        return this._sceneObjects[id];
+        return this._sceneObjects.get(id);
     }
 
     static _nextId()
@@ -155,18 +186,16 @@ class Scene
         this.lastFrameTime = elapsedTime;
 
         // Update each object
-        for(var i = 0; i < this.sceneObjects.length; ++i)
+        for (let [id, sceneObject] of this._sceneObjects) 
         {
-            var sceneObject = this.sceneObjects[i];
             sceneObject.update(this.deltaTime);
         }
 
-        // Prerender each object
-        for(var i = 0; i < this.sceneObjects.length; ++i)
+        for(let [id, sceneObject] of this._sceneObjects)
         {
-            if(this.sceneObjects[i].visible)
+            if(sceneObject.visible)
             {
-                this.sceneObjects[i].preRender();
+                sceneObject.preRender();
             }
         }
 
