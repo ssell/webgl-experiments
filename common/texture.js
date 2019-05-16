@@ -89,6 +89,11 @@ class Texture extends Resource
 
     _bindInternal(index, textureIndex, uniform)
     {
+        if(uniform == -1)
+        {
+            return;
+        }
+        
         this.context.gl.activeTexture(textureIndex);
         this.context.gl.bindTexture(this.context.gl.TEXTURE_2D, this.glTexture);
         this.context.gl.uniform1i(uniform, index);
