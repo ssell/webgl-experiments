@@ -14,6 +14,7 @@
         <script src="../../common/resources.js"></script>
         <script src="../../common/context.js"></script>
         <script src="../../common/shader.js"></script>
+        <script src="../../common/texture.js"></script>
         <script src="../../common/material.js"></script>
         <script src="../../common/mesh.js"></script>
         <script src="../../common/transform.js"></script>
@@ -21,6 +22,7 @@
         <script src="../../common/framestats.js"></script>
         <script src="../../common/sceneobject.js"></script>
         <script src="../../common/camera.js"></script>
+        <script src="../../common/scenetree.js"></script>
         <script src="../../common/scene.js"></script>
 
         <!-- Builds a scene with 50,000 independently moving and flashing quads in ~25 lines. -->
@@ -49,7 +51,7 @@
                 let endColor   = Utils.getRandomColor();
 
                 let quad = new FlashingQuad(scene.renderer, startColor, endColor);
-                quad.transform.translate(Utils.getRandom(-25, 25), Utils.getRandom(-25, 25), (Utils.getRandom(-75, 0)));
+                quad.translate(Utils.getRandom(-25, 25), Utils.getRandom(-25, 25), (Utils.getRandom(-75, 0)));
                 scene.sceneObjects.push(quad);
             }
 

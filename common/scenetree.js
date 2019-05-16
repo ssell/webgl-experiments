@@ -113,7 +113,7 @@ class QuadTreeObjectNode
  */
 class QuadTree extends SceneTree
 {
-    constructor(scene, width, height, maxDepth = 3, elementsPerNode = 4)
+    constructor(scene, width, height, centerX = 0, centerY = 0, maxDepth = 3, elementsPerNode = 4)
     {
         super();
 
@@ -125,7 +125,7 @@ class QuadTree extends SceneTree
         this.quadNodes       = new FixedList();
         this.objectNodes     = new FixedList();
 
-        this.quadNodes.add(new QuadTreeNode(width / 2, height / 2, 1));
+        this.quadNodes.add(new QuadTreeNode(centerX, centerY, 1));
     }
 
     add(sceneObject)
@@ -161,11 +161,11 @@ class QuadTree extends SceneTree
             if(numElements == -1)
             {
                 let first = orderedNodes[i].node.firstChild;
-                output += `B:${nodeId} (ul:${first}, ur:${first + 1}, lr:${first + 2}, ll:${first + 3})\n`;
+                output += `B:${nodeId} (ul:${first}, ur:${first + 1}, lr:${first + 2}, ll:${first + 3})<br/>`;
             }
             else 
             {
-                output += `L:${nodeId} (${numElements})\n`;
+                output += `L:${nodeId} (${numElements})<br/>`;
             }
         }
 
@@ -212,9 +212,7 @@ class QuadTree extends SceneTree
 
         while(toTraverse.length > 0)
         {
-            let currentNode   = toTraverse.pop();
-            let currentWidth  = this.width / currentNode.depth;
-            let currentHeight = this.height / currentNode.height;
+            let currentNode = toTraverse.pop();
 
             if(currentNode.numElements != -1)
             {
@@ -223,28 +221,31 @@ class QuadTree extends SceneTree
             }
             else
             {
+                const childWidth  = this.width / (currentNode.depth + 1);
+                const childHeight = this.height / (currentNode.depth + 1);
+
                 // This is a branch node. Check the children.
                 let ul = this.quadNodes.get(currentNode.firstChild + 0);       // Upper left child node
                 let ur = this.quadNodes.get(currentNode.firstChild + 1);       // Upper right child node
                 let lr = this.quadNodes.get(currentNode.firstChild + 2);       // Lower right child node
                 let ll = this.quadNodes.get(currentNode.firstChild + 3);       // Lower left child node
 
-                if(aabb.intersects(ul.center[0], ul.center[1], currentWidth, currentHeight))
+                if(aabb.intersects(ul.center[0], ul.center[1], childWidth, childHeight))
                 {
                     toTraverse.push(ul);
                 }
 
-                if(aabb.intersects(ur.center[0], ur.center[1], currentWidth, currentHeight))
+                if(aabb.intersects(ur.center[0], ur.center[1], childWidth, childHeight))
                 {
                     toTraverse.push(ur);
                 }
 
-                if(aabb.intersects(lr.center[0], lr.center[1], currentWidth, currentHeight))
+                if(aabb.intersects(lr.center[0], lr.center[1], childWidth, childHeight))
                 {
                     toTraverse.push(lr);
                 }
 
-                if(aabb.intersects(ll.center[0], ll.center[1], currentWidth, currentHeight))
+                if(aabb.intersects(ll.center[0], ll.center[1], childWidth, childHeight))
                 {
                     toTraverse.push(ll);
                 }
@@ -301,11 +302,11 @@ class QuadTree extends SceneTree
             else
             {
                 // Add this object to the end of the child linked list
-                let leafChild = this.objectNodes[leaf.firstChild];
+                let leafChild = this.objectNodes.get(leaf.firstChild);
 
                 while(leafChild.next != -1)
                 {
-                    leafChild = this.objectNodes[leafChild.next];
+                    leafChild = this.objectNodes.get(leafChild.next);
                 }
 
                 leafChild.next = objectNodeIndex;

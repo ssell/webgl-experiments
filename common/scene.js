@@ -11,7 +11,7 @@ class Scene
         this.renderer      = new Renderer(canvasId);
         this.frameStats    = new FrameStats(this.renderer.context);
         this.sceneObjects  = [];
-        this.sceneTree     = new QuadTree(this, this.renderer.context.gl.canvas.clientWidth, this.renderer.context.gl.canvas.clientHeight, 3);
+        this.sceneTree     = new QuadTree(this, 50, 50, 0, 0, 3);
         this.lastFrameTime = 0.0;
         this.deltaTime     = 0.0;
         this.shouldRun     = true;
@@ -185,4 +185,4 @@ class Scene
     }
 }
 
-SceneObject.nextId = 0;
+Scene.nextId = 0;

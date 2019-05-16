@@ -14,7 +14,7 @@ class RendererableComponent
         this.materialProps      = new MaterialPropertyBlock(this);
         this.bucketIndex        = -1;
         this.bucketEntryIndex   = -1;
-        this.aabb               = new AABB(0.5, 0.5, 0.5);
+        this.aabb               = new AABB([0.0, 0.0, 0.0], [0.5, 0.5, 0.5]);
         
         this._materialReference.addRenderableReference(this);
     }
@@ -109,6 +109,12 @@ class SceneObject
     dispose()
     {
         this.renderable.dispose();
+    }
+
+    translate(x, y, z)
+    {
+        this.transform.translate(x, y, z);
+        this.renderable.aabb.center = this.transform.position;
     }
 
     update(delta)

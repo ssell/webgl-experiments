@@ -241,10 +241,10 @@ class AABB
      * @param {*} xExtents The half extents along the x-axis.
      * @param {*} yExtents The half extents along the y-axis.
      */
-    constructor(xExtents = 0.5, yExtents = 0.5, zExtents = 0.5)
+    constructor(center, extents)
     {
-        this.center   = [ 0, 0, 0 ];
-        this.extents  = [ xExtents, yExtents, zExtents ];
+        this.center   = center;
+        this.extents  = extents;
     }
 
     intersectsAABB(other)
@@ -255,9 +255,9 @@ class AABB
         let otherMin = [other.center[0] - other.extents[0], other.center[1] - other.extents[1], other.center[2] - other.extents[2] ];
         let otherMax = [other.center[0] + other.extents[0], other.center[1] + other.extents[1], other.center[2] + other.extents[2] ];
 
-        return !((thisMin.x > otherMax.x) || (otherMin.x > thisMax.x) ||
-                 (thisMin.y > otherMax.y) || (otherMin.y > thisMax.y) ||
-                 (thisMin.z > otherMax.z) || (otherMin.z > thisMax.z));
+        return !((thisMin[0] > otherMax[0]) || (otherMin[0] > thisMax[0]) ||
+                 (thisMin[1] > otherMax[1]) || (otherMin[1] > thisMax[1]) ||
+                 (thisMin[2] > otherMax[2]) || (otherMin[2] > thisMax[2]));
     }
 
     intersectsRect(rectangle)
@@ -265,9 +265,7 @@ class AABB
         const rectHalfX = rectangle.width / 2;
         const rectHalfY = rectangle.height / 2;
 
-        let rectAABB = new AABB(rectHalfX, rectHalfY, Number.MAX_VALUE);
-        rectAABB.center[0] = rectangle.x + rectHalfX;
-        rectAABB.center[1] = rectangle.y + rectHalfY;
+        let rectAABB = new AABB([rectangle.x + rectHalfX, rectangle.y + rectHalfY, 0.0], [rectHalfX, rectHalfY, Number.MAX_VALUE]);
 
         return this.intersectsAABB(rectAABB);
     }
@@ -277,9 +275,7 @@ class AABB
         const halfX = width / 2;
         const halfY = height / 2;
 
-        let rectAABB = new AABB(halfX, halfY, Number.MAX_VALUE);
-        rectAABB.center[0] = x + halfX;
-        rectAABB.center[1] = y + halfY;
+        let rectAABB = new AABB([x, y, 0.0], [halfX, halfY, Number.MAX_VALUE]);
 
         return this.intersectsAABB(rectAABB);
     }

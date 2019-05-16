@@ -430,6 +430,7 @@ class Material extends Resource
         this.renderer        = renderer;
         this.shader          = this.context.resources.getShader(shaderName);
         this._instanced      = instanced;
+        this.textures        = [ null, null, null, null ];
         this.uniforms        = new Map();
         this.properties      = [];
         this.propertyBuckets = new Map();
@@ -441,6 +442,25 @@ class Material extends Resource
     get instanced()
     {
         return this._instanced;
+    }
+
+    setTexture(name, index)
+    {
+        if((index < 0) || (index >= this._textures.length))
+        {
+            console.error("Attempting to set material texture at invalid index " + index);
+            return;
+        }
+
+        let texture = this.renderer.context.resources.getTexture(name);
+
+        if(texture == null)
+        {
+            console.error("Attempting to set null texture '" + name + "' to material texture index " + index);
+            return;   
+        }
+
+        this.textures[index] = texture;
     }
 
     addPropertyBucket(meshName)
@@ -671,6 +691,7 @@ class Material extends Resource
         }
 
         this.bindUniforms();
+        this.bindTextures();
 
         return true;
     }
@@ -685,119 +706,6 @@ class Material extends Resource
         }
 
         propertyBucket.bind(instanceIndex);
-    }
-
-    /**
-     * Binds the underlying shader as the active shader, and then assigns the defined uniform and attribute properties.
-     * This should be used only for instanced materials. For non-instanced rendering, use `bind`.
-     * 
-     * This separation is due to the fact that in non-instanced rendering we simply bind the uniforms in this call
-     * and return whether that operation was successful or not.
-     * 
-     * However for instanced rendering (this method) we are responsible for also updating the instaced data buffers
-     * for our shader program.
-     * 
-     * @param {*} sceneObjects Array of SceneObjects that will be rendered with this material in this instance.
-     */
-    bindInstancedOld(sceneObjects)
-    {
-        if(this.shader == null)
-        {
-            console.error("Attempting to bind material with undefined shader");
-            return false;
-        }
-
-        if(!this.shader.bind())
-        {
-            return false;
-        }
-
-        this.bindUniforms();
-
-        // Naive approach first and then we will optimize...
-
-        // Each property already has a glBuffer allocated for it.
-        // So we need to go through each scene object and build up the data array for it.
-        // Once through all scene objects we can fill the buffer data and then discard the data array.
-        // Then finally we bind the property buffers.
-
-        let propertyCount = this.properties.length;
-        let propertyArrays = [];
-
-        for(let i = 0; i < propertyCount; ++i)
-        {
-            propertyArrays.push([]);
-        }
-
-        // Build up the data arrays
-        for(let i = 0; i < sceneObjects.length; ++i)
-        {
-            let values = sceneObjects[i].renderable.materialProps.fetchProperties(this.properties);
-
-            for(let j = 0; j < propertyCount; ++j)
-            {
-                propertyArrays[j].push.apply(propertyArrays[j], values[j]);
-            }
-        }
-
-        // Bind the data to the buffers
-        for(let i = 0; i < propertyCount; ++i)
-        {
-            let property = this.properties[i];
-
-            if(property.location == -1)
-            {
-                continue;
-            }
-
-            let float32Array = Float32Array.from(propertyArrays[i]);
-
-            this.context.gl.bindBuffer(this.context.gl.ARRAY_BUFFER, property.buffer);
-            this.context.gl.bufferData(this.context.gl.ARRAY_BUFFER, float32Array, this.context.gl.STATIC_DRAW);
-
-            switch(property.size)
-            {
-                case 1:    // float
-                case 2:    // vec2
-                case 3:    // vec3
-                case 4:    // vec4
-                    this.context.gl.vertexAttribPointer(property.location, property.size, this.context.gl.FLOAT, false, 0, 0);
-                    this.context.gl.enableVertexAttribArray(property.location);
-                    this.context.gl.vertexAttribDivisor(property.location, 1);
-                    break;
-
-                case 9:    // mat3
-                    this.context.gl.vertexAttribPointer(property.location + 0, 4, this.context.gl.FLOAT, false, 36, 0);     // 3 columns, 12 bytes per column
-                    this.context.gl.vertexAttribPointer(property.location + 1, 4, this.context.gl.FLOAT, false, 36, 12);
-                    this.context.gl.vertexAttribPointer(property.location + 2, 4, this.context.gl.FLOAT, false, 36, 24);
-                    
-                    this.context.gl.enableVertexAttribArray(property.location + 0);
-                    this.context.gl.enableVertexAttribArray(property.location + 1);
-                    this.context.gl.enableVertexAttribArray(property.location + 2);
-
-                    this.context.gl.vertexAttribDivisor(property.location + 0, 1);
-                    this.context.gl.vertexAttribDivisor(property.location + 1, 1);
-                    this.context.gl.vertexAttribDivisor(property.location + 2, 1);
-                    break;
-
-                case 16:   // mat4
-                    this.context.gl.vertexAttribPointer(property.location + 0, 4, this.context.gl.FLOAT, false, 64, 0);     // 4 columns, 16 bytes per column
-                    this.context.gl.vertexAttribPointer(property.location + 1, 4, this.context.gl.FLOAT, false, 64, 16);
-                    this.context.gl.vertexAttribPointer(property.location + 2, 4, this.context.gl.FLOAT, false, 64, 32);
-                    this.context.gl.vertexAttribPointer(property.location + 3, 4, this.context.gl.FLOAT, false, 64, 48);
-                    
-                    this.context.gl.enableVertexAttribArray(property.location + 0);
-                    this.context.gl.enableVertexAttribArray(property.location + 1);
-                    this.context.gl.enableVertexAttribArray(property.location + 2);
-                    this.context.gl.enableVertexAttribArray(property.location + 3);
-
-                    this.context.gl.vertexAttribDivisor(property.location + 0, 1);
-                    this.context.gl.vertexAttribDivisor(property.location + 1, 1);
-                    this.context.gl.vertexAttribDivisor(property.location + 2, 1);
-                    this.context.gl.vertexAttribDivisor(property.location + 3, 1);
-                    break;
-            }
-        }
     }
 
     /**
@@ -830,6 +738,17 @@ class Material extends Resource
         {
             this.uniforms.get(uniform.value).bind();
             uniform = uniformIter.next();
+        }
+    }
+
+    bindTextures()
+    {
+        for(let i = 0; i < this.textures.length; ++i)
+        {
+            if(this.textures[i] != null)
+            {
+                this.textures[i].bind(i, this.shader);
+            }
         }
     }
 

@@ -2,7 +2,8 @@ var ResourceType =
 {
     Mesh: 1,
     Shader: 2,
-    Material: 3
+    Material: 3,
+    Texture: 4
 };
 
 class ResourceManager
@@ -67,6 +68,11 @@ class ResourceManager
     getMaterial(name)
     {
         return this.getResourceByNameType(name, ResourceType.Material);
+    }
+
+    getTexture(name)
+    {
+        return this.getResourceByNameType(name, ResourceType.Texture);
     }
 }
 
