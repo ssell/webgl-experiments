@@ -1,6 +1,6 @@
 class Texture extends Resource
 {
-    constructor(context, name, )
+    constructor(context, name)
     {
         super(context, name, ResourceType.Texture);
 
@@ -8,7 +8,7 @@ class Texture extends Resource
         this.width          = 1;
         this.height         = 1;
         this.border         = 0;
-        this.internalFormat = context.gl.RGBA;
+        this.internalFormat = context.gl.RGBA32F;   // See table at: https://www.khronos.org/registry/webgl/specs/latest/2.0/
         this.sourceFormat   = context.gl.RGBA;
         this.sourceType     = context.gl.FLOAT;
         this.data           = [];
@@ -19,15 +19,28 @@ class Texture extends Resource
     build()
     {
         let pixels = null;
+        let pixelDataLength = this.width * this.height * this._getPixelDepth();
 
         switch(this.sourceType)
         {
-            case context.gl.FLOAT:
-                pixels = new Float32Array(this.data.length);
+            case this.context.gl.UNSIGNED_BYTE:
+                pixels = new Uint8Array(pixelDataLength);
                 break;
 
-            case context.gl.UNSIGNED_BYTE:
-                pixels = new Uint8Array(this.data.length);
+            case this.context.gl.UNSIGNED_SHORT_5_6_5:
+            case this.context.gl.UNSIGNED_SHORT_4_4_4_4:
+            case this.context.gl.UNSIGNED_SHORT_5_5_5_1:
+            case this.context.gl.UNSIGNED_SHORT:
+                pixels = new Uint16Array(pixelDataLength);
+                break;
+
+            case this.context.gl.UNSIGNED_INT:
+            case this.context.gl.UNSIGNED_INT_24_8_WEBGL:
+                pixels = new Uint32Array(pixelDataLength);
+                break;
+
+            case this.context.gl.FLOAT:
+                pixels = new Float32Array(pixelDataLength);
                 break;
 
             default:
@@ -35,9 +48,16 @@ class Texture extends Resource
                 return;
         }
 
-        for(let i = 0; i < data.length; ++i)
+        let pixelIndex = 0;
+
+        for(; (pixelIndex < this.data.length && pixelIndex < pixelDataLength); ++pixelIndex)
         {
-            pixels[i] = this.data[i];
+            pixels[pixelIndex] = this.data[pixelIndex];
+        }
+
+        for(; pixelIndex < pixelDataLength; ++pixelIndex)
+        {
+            pixels[pixelIndex] = 0;
         }
 
         this.context.gl.bindTexture(this.context.gl.TEXTURE_2D, this.glTexture);
@@ -59,9 +79,10 @@ class Texture extends Resource
         }
         else
         {
+            this.context.gl.texParameteri(this.context.gl.TEXTURE_2D, this.context.gl.TEXTURE_MAG_FILTER, this.context.gl.LINEAR);
+            this.context.gl.texParameteri(this.context.gl.TEXTURE_2D, this.context.gl.TEXTURE_MIN_FILTER, this.context.gl.LINEAR);
             this.context.gl.texParameteri(this.context.gl.TEXTURE_2D, this.context.gl.TEXTURE_WRAP_S, this.context.gl.CLAMP_TO_EDGE);
             this.context.gl.texParameteri(this.context.gl.TEXTURE_2D, this.context.gl.TEXTURE_WRAP_T, this.context.gl.CLAMP_TO_EDGE);
-            this.context.gl.texParameteri(this.context.gl.TEXTURE_2D, this.context.gl.TEXTURE_MIN_FILTER, this.context.gl.LINEAR);
         }
     }
 
@@ -89,7 +110,7 @@ class Texture extends Resource
 
     _bindInternal(index, textureIndex, uniform)
     {
-        if(uniform == -1)
+        if((uniform === null) || (uniform == -1))
         {
             return;
         }
@@ -97,5 +118,19 @@ class Texture extends Resource
         this.context.gl.activeTexture(textureIndex);
         this.context.gl.bindTexture(this.context.gl.TEXTURE_2D, this.glTexture);
         this.context.gl.uniform1i(uniform, index);
+    }
+
+    _getPixelDepth()
+    {
+        switch(this.sourceFormat)
+        {
+            case this.context.gl.RGBA:
+            case this.context.gl.RGBA32F:
+                return 4;
+
+            default:
+                console.error("Unsupported pixel source format");
+                return 0;
+        }
     }
 }

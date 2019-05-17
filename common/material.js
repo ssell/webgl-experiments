@@ -446,7 +446,7 @@ class Material extends Resource
 
     setTexture(name, index)
     {
-        if((index < 0) || (index >= this._textures.length))
+        if((index < 0) || (index >= this.textures.length))
         {
             console.error("Attempting to set material texture at invalid index " + index);
             return;

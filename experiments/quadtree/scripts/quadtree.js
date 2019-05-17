@@ -287,5 +287,13 @@ class QuadTreeDebugObject extends SceneObject
         this.quadTree = quadTree;
         this.renderable.material = "quadtree_visualizer";
         this.scale(this.quadTree.width, this.quadTree.height, 1.0);
+
+        this.qtTexture = new Texture(renderer.context, "qtdbg");
+        this.qtTexture.width = 2;
+        this.qtTexture.height = 2;
+        this.qtTexture.data = [ 1.0, 0.0, 1.0, 1.0 ];
+        this.qtTexture.build();
+
+        this.renderable._materialReference.setTexture("qtdbg", 0);
     }
 }

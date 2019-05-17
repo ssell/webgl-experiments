@@ -1,4 +1,4 @@
-const shader_flat_vs = shader_common_vs + `
+const shader_flat_vs = shader_common_vs + glsl`
     uniform vec4 Color;
     varying lowp vec4 vColor;
 
@@ -9,7 +9,7 @@ const shader_flat_vs = shader_common_vs + `
     }
 `;
 
-const shader_flat_instanced_vs = shader_common_vs_instanced + `
+const shader_flat_instanced_vs = shader_common_vs_instanced + glsl`
     attribute vec4 Color;
     varying lowp vec4 vColor;
 
@@ -20,7 +20,7 @@ const shader_flat_instanced_vs = shader_common_vs_instanced + `
     }
 `;
 
-const shader_flat_fs = shader_common_fs + `
+const shader_flat_fs = shader_common_fs + glsl`
     varying lowp vec4 vColor;
 
     void main()
@@ -29,7 +29,7 @@ const shader_flat_fs = shader_common_fs + `
     }
 `;
 
-const shader_flash_vs = shader_common_vs + `
+const shader_flash_vs = shader_common_vs + glsl`
     uniform vec4 StartColor;
     uniform vec4 EndColor;
 
@@ -42,7 +42,7 @@ const shader_flash_vs = shader_common_vs + `
     }
 `;
 
-const shader_flash_instanced_vs = shader_common_vs_instanced + `
+const shader_flash_instanced_vs = shader_common_vs_instanced + glsl`
     attribute vec4 StartColor;
     attribute vec4 EndColor;
 

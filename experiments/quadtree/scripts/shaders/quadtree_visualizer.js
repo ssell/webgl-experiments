@@ -1,4 +1,4 @@
-const shader_quadtree_visualizer_vs = shader_common_vs + `
+const shader_quadtree_visualizer_vs = shader_common_vs + glsl`
 
     void main()
     {
@@ -6,10 +6,11 @@ const shader_quadtree_visualizer_vs = shader_common_vs + `
     }
 `;
 
-const shader_quadtree_visualizer_fs = shader_common_fs + `
+const shader_quadtree_visualizer_fs = shader_common_fs + glsl`
 
     void main()
     {
-        gl_FragColor = vec4(1.0, 0.3, 0.3, 1.0);
+        vec3 fetch = texture2D(sampler0, vec2(0.0, 0.0)).rgb;
+        gl_FragColor = vec4(fetch.rgb, 1.0);
     }
 `;
