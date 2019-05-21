@@ -1,5 +1,13 @@
 class Texture extends Resource
 {
+    /**
+     * 
+     * For valid internalFormat/sourceFormat/sourceType combinations see tables in '3.7.6 Texture objects`
+     * https://www.khronos.org/registry/webgl/specs/latest/2.0/
+     * 
+     * @param {*} context 
+     * @param {*} name 
+     */
     constructor(context, name)
     {
         super(context, name, ResourceType.Texture);
@@ -8,7 +16,7 @@ class Texture extends Resource
         this.width          = 1;
         this.height         = 1;
         this.border         = 0;
-        this.internalFormat = context.gl.RGBA32F;   // See table at: https://www.khronos.org/registry/webgl/specs/latest/2.0/
+        this.internalFormat = context.gl.RGBA32F;
         this.sourceFormat   = context.gl.RGBA;
         this.sourceType     = context.gl.FLOAT;
         this.data           = [];

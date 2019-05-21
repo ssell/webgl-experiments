@@ -112,6 +112,29 @@ class QuadTree extends SceneTree
         return output;
     }
 
+    /**
+     * Traverses the tree and returns a list of node information used in debug rendering.
+     * The list is formatted as:
+     * 
+     *     [ qt width, qt height, num nodes, 0.0, node0 x, node0 y, node0 depth, 0.0, node1 x, node1 y, node1 depth, 0.0, ...]
+     */
+    debugTraverseGetNodeList()
+    {
+        // Traverses all nodes.
+        var orderedNodes = [];
+        this._buildOrderedNodes(orderedNodes, 0);
+
+        var nodeInfo = [this.width, this.height, orderedNodes.length, 0.0];
+
+        for(let i = 0; i < orderedNodes.length; ++i)
+        {
+            var node = orderedNodes[i].node;
+            nodeInfo.push(node.center[0], node.center[1], node.depth, 0.0);
+        }
+
+        return nodeInfo;
+    }
+
     _buildOrderedNodes(orderedNodes, current)
     {
         let node = this.quadNodes.get(current);
@@ -278,6 +301,12 @@ class QuadTree extends SceneTree
     }
 }
 
+/**
+ * SceneObject which displays the state of a QuadTree.
+ * 
+ * Information about the nodes of the QuadTree are packed into a (N+1)x1 texture,
+ * where N is the number of nodes in the tree, and then rendered by the `shader_quadtree_visualizer_fs` shader.
+ */
 class QuadTreeDebugObject extends SceneObject
 {
     constructor(renderer, quadTree)
@@ -289,11 +318,19 @@ class QuadTreeDebugObject extends SceneObject
         this.scale(this.quadTree.width, this.quadTree.height, 1.0);
 
         this.qtTexture = new Texture(renderer.context, "qtdbg");
-        this.qtTexture.width = 2;
+        this.qtTexture.width  = 2;
         this.qtTexture.height = 2;
-        this.qtTexture.data = [ 1.0, 0.0, 1.0, 1.0 ];
+        this.qtTexture.data   = [ 0.3, 1.0, 1.0, 1.0 ];
         this.qtTexture.build();
 
         this.renderable._materialReference.setTexture("qtdbg", 0);
+    }
+
+    update(delta)
+    {
+        this.qtTexture.data   = this.quadTree.debugTraverseGetNodeList();
+        this.qtTexture.width  = this.qtTexture.data[2];
+        this.qtTexture.height = 1;
+        this.qtTexture.build();
     }
 }

@@ -1,56 +1,54 @@
 const shader_flat_vs = shader_common_vs + glsl`
     uniform vec4 Color;
-    varying lowp vec4 vColor;
+    out vec4 VertColor;
 
     void main()
     {
         gl_Position = transformPosition();
-        vColor = Color;
+        VertColor = Color;
     }
 `;
 
 const shader_flat_instanced_vs = shader_common_vs_instanced + glsl`
-    attribute vec4 Color;
-    varying lowp vec4 vColor;
+    in vec4 Color;
+    out vec4 VertColor;
 
     void main()
     {
         gl_Position = transformPosition();
-        vColor = Color;
+        VertColor = Color;
     }
 `;
 
 const shader_flat_fs = shader_common_fs + glsl`
-    varying lowp vec4 vColor;
+    in vec4 VertColor;
 
     void main()
     {
-        gl_FragColor = vColor;
+        fragColor = VertColor;
     }
 `;
 
 const shader_flash_vs = shader_common_vs + glsl`
-    uniform vec4 StartColor;
-    uniform vec4 EndColor;
-
-    varying lowp vec4 vColor;
+    out vec4 StartColor;
+    out vec4 EndColor;
+    out vec4 VertColor;
 
     void main()
     {
         gl_Position = transformPosition();
-        vColor = vec4(mix(StartColor, EndColor, (sin(FrameInfo.y) + 1.0) * 0.5));
+        VertColor = vec4(mix(StartColor, EndColor, (sin(FrameInfo.y) + 1.0) * 0.5));
     }
 `;
 
 const shader_flash_instanced_vs = shader_common_vs_instanced + glsl`
-    attribute vec4 StartColor;
-    attribute vec4 EndColor;
-
-    varying lowp vec4 vColor;
+    in vec4 StartColor;
+    in vec4 EndColor;
+    out vec4 VertColor;
 
     void main()
     {
         gl_Position = transformPosition();
-        vColor = vec4(mix(StartColor, EndColor, (sin(FrameInfo.y) + 1.0) * 0.5));
+        VertColor = vec4(mix(StartColor, EndColor, (sin(FrameInfo.y) + 1.0) * 0.5));
     }
 `;
