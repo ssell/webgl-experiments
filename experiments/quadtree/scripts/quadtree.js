@@ -55,6 +55,8 @@ class QuadTree extends SceneTree
 
         this.width           = width;
         this.height          = height;
+        this.centerX         = centerX;
+        this.centerY         = centerY;
         this.maxDepth        = maxDepth;
         this.elementsPerNode = elementsPerNode;
         this.quadNodes       = new FixedList();
@@ -116,20 +118,32 @@ class QuadTree extends SceneTree
      * Traverses the tree and returns a list of node information used in debug rendering.
      * The list is formatted as:
      * 
-     *     [ qt width, qt height, num nodes, 0.0, node0 x, node0 y, node0 depth, 0.0, node1 x, node1 y, node1 depth, 0.0, ...]
+     *     [ node0.x, node0.y, node0.depth, node0.isLeaf, node1.x, node1.y, node1.depth, node1.isLeaf, ... ]
      */
-    debugTraverseGetNodeList()
+    debugTraverseGetNodeList(includeBranches = true, includeLeaves = true)
     {
         // Traverses all nodes.
-        var orderedNodes = [];
+        let orderedNodes = [];
+        let nodeInfo = [];
         this._buildOrderedNodes(orderedNodes, 0);
 
-        var nodeInfo = [this.width, this.height, orderedNodes.length, 0.0];
 
         for(let i = 0; i < orderedNodes.length; ++i)
         {
-            var node = orderedNodes[i].node;
-            nodeInfo.push(node.center[0], node.center[1], node.depth, 0.0);
+            let node = orderedNodes[i].node;
+            let isLeaf = this._isLeaf(node);
+
+            if(isLeaf && !includeLeaves)
+            {
+                continue;
+            }
+
+            if(!isLeaf && !includeBranches)
+            {
+                continue;
+            }
+
+            nodeInfo.push(node.center[0], node.center[1], node.depth, (isLeaf ? 1 : 0));
         }
 
         return nodeInfo;
@@ -184,8 +198,9 @@ class QuadTree extends SceneTree
             }
             else
             {
-                const childWidth  = this.width / (currentNode.depth + 1);
-                const childHeight = this.height / (currentNode.depth + 1);
+                const childDepth  = currentNode.depth + 1;
+                const childWidth  = this.width / Math.pow(2, childDepth);
+                const childHeight = this.height / Math.pow(2, childDepth);
 
                 // This is a branch node. Check the children.
                 let ul = this.quadNodes.get(currentNode.firstChild + 0);       // Upper left child node
@@ -223,6 +238,27 @@ class QuadTree extends SceneTree
         let objectNode      = new QuadTreeObjectNode(id);
         let objectNodeIndex = this.objectNodes.add(objectNode);
 
+        // Add object node to the leaf
+        if(leaf.numElements == 0)
+        {
+            // First element in the leaf
+            leaf.firstChild = objectNodeIndex;
+        }
+        else
+        {
+            // Add this object to the end of the child linked list
+            let leafChild = this.objectNodes.get(leaf.firstChild);
+
+            while(leafChild.next != -1)
+            {
+                leafChild = this.objectNodes.get(leafChild.next);
+            }
+
+            leafChild.next = objectNodeIndex;
+        }
+
+        leaf.numElements++;
+
         // If the leaf is full and not at max depth, split it
         if((leaf.numElements >= this.elementsPerNode) && (leaf.depth < this.maxDepth))
         {
@@ -230,9 +266,9 @@ class QuadTree extends SceneTree
             let leafObjects = this._getObjectNodeList(leaf.firstChild);
 
             //
-            let childDepth      = leaf.depth + 1;
-            let childHalfWidth  = this.width / (childDepth * 2);
-            let childHalfHeight = this.height / (childDepth * 2);
+            const childDepth      = leaf.depth + 1;
+            const childHalfWidth  = this.width / Math.pow(2, childDepth);
+            const childHalfHeight = this.height / Math.pow(2, childDepth);
 
             // Create the four child nodes
             let childUL = new QuadTreeNode(leaf.center[0] - childHalfWidth, leaf.center[1] + childHalfHeight, childDepth);
@@ -254,29 +290,6 @@ class QuadTree extends SceneTree
                 this._insertObject(this.scene.getSceneObject(objectIndex), leaf);
             }
         }
-        else 
-        {
-            // Add object node to the leaf
-            if(leaf.numElements == 0)
-            {
-                // First element in the leaf
-                leaf.firstChild = objectNodeIndex;
-            }
-            else
-            {
-                // Add this object to the end of the child linked list
-                let leafChild = this.objectNodes.get(leaf.firstChild);
-
-                while(leafChild.next != -1)
-                {
-                    leafChild = this.objectNodes.get(leafChild.next);
-                }
-
-                leafChild.next = objectNodeIndex;
-            }
-
-            leaf.numElements++;
-        }
     }
 
     _intersects(sceneObject, node)
@@ -297,7 +310,11 @@ class QuadTree extends SceneTree
         }
 
         return objectNodes;
-        
+    }
+
+    _isLeaf(node)
+    {
+        return node.numElements != -1;
     }
 }
 
@@ -318,19 +335,36 @@ class QuadTreeDebugObject extends SceneObject
         this.scale(this.quadTree.width, this.quadTree.height, 1.0);
 
         this.qtTexture = new Texture(renderer.context, "qtdbg");
-        this.qtTexture.width  = 2;
-        this.qtTexture.height = 2;
-        this.qtTexture.data   = [ 0.3, 1.0, 1.0, 1.0 ];
-        this.qtTexture.build();
-
         this.renderable._materialReference.setTexture("qtdbg", 0);
+
+        this.renderable.materialProps.setPropertyByName("QuadTreeInfo", [
+            this.quadTree.width, 
+            this.quadTree.height, 
+            this.quadTree.centerX,
+            this.quadTree.centerY]);
+            
+        this.totalDelta;
     }
 
     update(delta)
     {
-        this.qtTexture.data   = this.quadTree.debugTraverseGetNodeList();
-        this.qtTexture.width  = this.qtTexture.data[2];
-        this.qtTexture.height = 1;
+        this.totalDelta += delta;
+
+        if(this.totalDelta < 1.0)
+        {
+            return;
+        }
+
+        this.totalDelta = 0.0;
+
+        // Insert the QuadTree structure info into the texture data
+        this.qtTexture.data = this.quadTree.debugTraverseGetNodeList(true, false);
+
+        // Prepend the structure info with the number of nodes in the QuadTree
+        this.qtTexture.data.unshift(this.qtTexture.data.length / 4, 0.0, 0.0, 0.0);
+
+        // Build the updated texture
+        this.qtTexture.width = this.qtTexture.data[0] + 1;
         this.qtTexture.build();
     }
 }

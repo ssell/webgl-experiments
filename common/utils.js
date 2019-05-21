@@ -270,12 +270,16 @@ class AABB
         return this.intersectsAABB(rectAABB);
     }
 
-    intersects(x, y, width, height)
+    /**
+     * 
+     * @param {*} x X-component of the rectangle center
+     * @param {*} y Y-component of the rectangle center
+     * @param {*} halfWidth Half width of the rectangle
+     * @param {*} halfHeight Half height of the rectangle
+     */
+    intersects(x, y, halfWidth, halfHeight)
     {
-        const halfX = width / 2;
-        const halfY = height / 2;
-
-        let rectAABB = new AABB([x, y, 0.0], [halfX, halfY, Number.MAX_VALUE]);
+        let rectAABB = new AABB([x, y, 0.0], [halfWidth, halfHeight, Number.MAX_VALUE]);
 
         return this.intersectsAABB(rectAABB);
     }

@@ -45,6 +45,9 @@ const shader_common_fs = glsl`#version 300 es
 
     precision mediump float;
 
+    // [Frame Number, Time Elapsed, Frame Delta, 0]
+    uniform vec4 FrameInfo;
+
     uniform sampler2D sampler0;
     uniform sampler2D sampler1;
     uniform sampler2D sampler2;
@@ -56,6 +59,9 @@ const shader_common_fs = glsl`#version 300 es
 const shader_common_fs_instanced = glsl`#version 300 es
 
     precision mediump float;
+    
+    // [Frame Number, Time Elapsed, Frame Delta, 0]
+    uniform vec4 FrameInfo; 
 
     uniform sampler2D sampler0;
     uniform sampler2D sampler1;

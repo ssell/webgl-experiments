@@ -66,6 +66,50 @@ class Camera extends SceneObject
         return this._far;
     }
 
+    /**
+     * Converts screen space coordinates to clip space.
+     * Returns the clip position as an array [x, y].
+     * 
+     * @param {*} screenX 
+     * @param {*} screenY 
+     */
+    screenToClip(screenX, screenY)
+    {
+        return [ screenX / this.renderable.renderer.context.gl.canvas.width  *  2 - 1,
+                 screenY / this.renderable.renderer.context.gl.canvas.height * -2 + 1 ];
+    }
+
+    /**
+     * Calculates the world positions of the specified screen space position.
+     * Returns the world position as an array [x, y , z].
+     * 
+     * @param {*} screenX X-position in screen-space.
+     * @param {*} screenY Y-position in screen-space.
+     * @param {*} zOffset Z (depth) offset from the camera's near clip in world units.
+     */
+    screenToWorld(screenX, screenY, zOffset = 0.0)
+    {
+        let worldPos = [0.0, 0.0, 0.0];
+        let depthPos = [0.0, 0.0, zOffset];
+
+        const viewMatrix     = this.viewMatrix();
+        const projMatrix     = this.renderable.renderer.context.projectionMatrix;
+        const viewProjMatrix = mat4.create();
+        const clipPos        = this.screenToClip(screenX, screenY);
+
+        // Create and invert the view-projection matrix
+        mat4.multiply(viewProjMatrix, projMatrix, viewMatrix);
+        mat4.invert(viewProjMatrix, viewProjMatrix);
+
+        // Transform the requested z offset to clip space
+        vec3.transformMat4(depthPos, depthPos, projMatrix);
+
+        // Transform the clip space position to world space
+        vec3.transformMat4(worldPos, [clipPos[0], clipPos[1], depthPos[2]], viewProjMatrix);
+
+        return worldPos;
+    }
+
     rebuildProjection()
     {
         this.renderable.renderer.context.setProjectionPerspective(this._fov, this._aspect, this._near, this._far);
