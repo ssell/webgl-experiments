@@ -56,6 +56,20 @@ function getMousePos(canvas, evt) {
     };
 }
 
+function handleSpawnClick(mousePos)
+{
+    const worldPos = scene.renderer.camera.screenToWorld(mousePos.x, mousePos.y, -scene.renderer.camera.transform.position[2]);
+    spawnQuad(Utils.clamp(worldPos[0], -24.5, 24.5), Utils.clamp(worldPos[1], -24.5, 24.5));
+}
+
+function handleDeleteClick(mousePos)
+{
+    const ray = scene.renderer.camera.screenToRay(mousePos.x, mousePos.y);
+    const selected = scene.sceneTree.findIntersectionsRay(ray);
+
+    console.log(selected.length);
+}
+
 $(document).ready(function()
 {
     setupScene();
@@ -64,9 +78,16 @@ $(document).ready(function()
     $(scene.renderer.context.canvas).click(function(event)
     {
         const mousePos = getMousePos(scene.renderer.context.canvas, event);
-        const worldPos = scene.renderer.camera.screenToWorld(mousePos.x, mousePos.y, -scene.renderer.camera.transform.position[2]);
-
-        spawnQuad(worldPos[0], worldPos[1]);
+        
+        // Shift + Click deletes
+        if(event.shiftKey)
+        {
+            handleDeleteClick(mousePos);
+        }
+        else
+        {
+            handleSpawnClick(mousePos);
+        }
     });
 
     $("#spawn_quad").click(function()

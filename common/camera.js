@@ -110,6 +110,18 @@ class Camera extends SceneObject
         return worldPos;
     }
 
+    screenToRay(screenX, screenY)
+    {
+        let near = this.screenToWorld(screenX, screenY, 0.0);
+        let far  = this.screenToWorld(screenX, screenY, -10.0);
+        let dir  = [ 0.0, 0.0, 0.0 ];
+
+        vec3.subtract(dir, far, near);
+        vec3.normalize(dir, dir);
+
+        return new Ray(near, dir);
+    }
+
     rebuildProjection()
     {
         this.renderable.renderer.context.setProjectionPerspective(this._fov, this._aspect, this._near, this._far);

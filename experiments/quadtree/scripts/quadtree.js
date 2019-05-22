@@ -70,14 +70,101 @@ class QuadTree extends SceneTree
         
     }
 
+    /**
+     * @param {SceneObject} sceneObject 
+     */
     add(sceneObject)
     {
         this._insertObject(sceneObject);
     }
 
+    /**
+     * @param {SceneObject} sceneObject 
+     */
     remove(sceneObject)
     {
 
+    }
+    
+    /**
+     * Returns a list of all SceneObjects whose bounds intersect with the provided Ray.
+     * 
+     * @param {Ray} ray
+     * @returns {SceneObject[]}
+     */
+    findIntersectionsRay(ray)
+    {
+        return this._findIntersections(Intersects.RayWithRectangle, Intersects.RayWithAABB, ray);
+    }
+    
+    /**
+     * Returns a list of all SceneObjects whose bounds intersect with the provided BoundsAABB.
+     * 
+     * @param {BoundsAABB} aabb
+     * @returns {SceneObject[]}
+     */
+    findIntersectionsAABB(aabb)
+    {
+        return this._findIntersections(Intersects.AABBWithRectangle, Intersects.AABBWithAABB, aabb);
+    }
+
+    
+    /**
+     * Returns a list of all SceneObjects whose bounds intersect with the provided BoundsSphere.
+     * 
+     * @param {BoundsSphere} sphere
+     * @returns {SceneObject[]}
+     */
+    findIntersectionsSphere(sphere)
+    {
+        return this._findIntersections(Intersects.SphereWithRectangle, Intersects.SphereWithAABB, sphere);
+    }
+
+    /**
+     * 
+     * @param {*} boundWithRectFunc Function which performs Rectangle intersection. `Intersects.RayWithRectangle`, etc.
+     * @param {*} boundWithAABBFunc Function which performs AABB intersection. `Intersects.RayWithAABB`, etc.
+     * @param {*} bound Object to perform intersection against (BoundsAABB, BoundsSphere, or Ray).
+     * @returns {SceneObject[]}
+     */
+    _findIntersections(boundWithRectFunc, boundWithAABBFunc, bound)
+    {
+        let objects = [];
+
+        // Find all leaf nodes which this Ray intersects
+        let leafNodes      = this._findLeafsWhichIntersect(boundWithRectFunc, bound);
+        let numLeafNodes   = leafNodes.length;
+        let sceneObjectIds = [];
+
+        // For each leaf node which intersects
+        while(numLeafNodes--)
+        {
+            let leaf = leafNodes.pop();
+
+            if(leaf.numElements == 0)
+            {
+                continue;
+            }
+
+            // Get all objects referenced in the leaf
+            this._buildSceneObjectList(leaf, sceneObjectIds);
+        }
+
+        // Remove duplicates as a single SceneObject may be referenced by multiple QuadTreeObjectNodes if it spans boundaries
+        sceneObjectIds = [...new Set(sceneObjectIds)];
+
+        // Check for intersection against each potential object
+        for(let i = 0; i < sceneObjectIds.length; ++i)
+        {
+            let sceneObject = this.scene.getSceneObject(sceneObjectIds[i]);
+
+            if(boundWithAABBFunc(bound, sceneObject.renderable.aabb).result != IntersectionType.None)
+            {
+                objects.push(sceneObject);
+            }
+        }
+
+        return objects;
     }
 
     update()
@@ -119,6 +206,9 @@ class QuadTree extends SceneTree
      * The list is formatted as:
      * 
      *     [ node0.x, node0.y, node0.depth, node0.isLeaf, node1.x, node1.y, node1.depth, node1.isLeaf, ... ]
+     * 
+     * @param {Boolean} includeBranches 
+     * @param {Boolean} includeLeaves 
      */
     debugTraverseGetNodeList(includeBranches = true, includeLeaves = true)
     {
@@ -149,6 +239,11 @@ class QuadTree extends SceneTree
         return nodeInfo;
     }
 
+    /**
+     * 
+     * @param {QuadTreeNode[]} orderedNodes 
+     * @param {Number} current 
+     */
     _buildOrderedNodes(orderedNodes, current)
     {
         let node = this.quadNodes.get(current);
@@ -164,10 +259,15 @@ class QuadTree extends SceneTree
         }
     }
 
+    /**
+     * 
+     * @param {SceneObject} sceneObject 
+     * @param {QuadTreeNode} startNode 
+     */
     _insertObject(sceneObject, startNode = null)
     {
         // Find all leaf nodes which this object intersects
-        let leafNodes    = this._findLeafsWhichIntersect(sceneObject.renderable.aabb, startNode);
+        let leafNodes    = this._findLeafsWhichIntersect(Intersects.AABBWithRectangle, sceneObject.renderable.aabb, startNode);
         let numLeafNodes = leafNodes.length;
 
         // Insert the object into each intersected leaf node
@@ -178,11 +278,12 @@ class QuadTree extends SceneTree
     }
 
     /**
-     * Constructs a list of all leaf nodes which intersect the provided AABB.
+     * Constructs a list of all leaf nodes which intersect the provided bound object (BoundsAABB, BoundsSphere, or Ray).
      * 
-     * @param {*} aabb 
+     * @param {*} bound 
+     * @param {QuadTreeNode} startNode
      */
-    _findLeafsWhichIntersect(aabb, startNode = null)
+    _findLeafsWhichIntersect(intersectionFunc, bound, startNode = null)
     {
         let toTraverse = [ (startNode == null ? this.quadNodes.get(0) : startNode) ];
         let leafNodes  = [];
@@ -208,22 +309,79 @@ class QuadTree extends SceneTree
                 let lr = this.quadNodes.get(currentNode.firstChild + 2);       // Lower right child node
                 let ll = this.quadNodes.get(currentNode.firstChild + 3);       // Lower left child node
 
-                if(aabb.intersects(ul.center[0], ul.center[1], childWidth, childHeight))
+                if(intersectionFunc(bound, ul.center[0], ul.center[1], childWidth, childHeight).result != IntersectionType.None)
                 {
                     toTraverse.push(ul);
                 }
 
-                if(aabb.intersects(ur.center[0], ur.center[1], childWidth, childHeight))
+                if(intersectionFunc(bound, ur.center[0], ur.center[1], childWidth, childHeight).result != IntersectionType.None)
                 {
                     toTraverse.push(ur);
                 }
 
-                if(aabb.intersects(lr.center[0], lr.center[1], childWidth, childHeight))
+                if(intersectionFunc(bound, lr.center[0], lr.center[1], childWidth, childHeight).result != IntersectionType.None)
                 {
                     toTraverse.push(lr);
                 }
 
-                if(aabb.intersects(ll.center[0], ll.center[1], childWidth, childHeight))
+                if(intersectionFunc(bound, ll.center[0], ll.center[1], childWidth, childHeight).result != IntersectionType.None)
+                {
+                    toTraverse.push(ll);
+                }
+            }
+        }
+
+        return leafNodes;
+    }
+
+    /**
+     * Constructs a list of all leaf nodes which intersect the provided Ray.
+     * 
+     * @param {Ray} ray 
+     * @param {QuadTreeNode} startNode
+     */
+    _findLeafsWhichIntersectRay(ray, startNode = null)
+    {
+        let toTraverse = [ (startNode == null ? this.quadNodes.get(0) : startNode) ];
+        let leafNodes  = [];
+
+        while(toTraverse.length > 0)
+        {
+            let currentNode = toTraverse.pop();
+
+            if(currentNode.numElements != -1)
+            {
+                // This is a leaf node, add it to the list.
+                leafNodes.push(currentNode);
+            }
+            else
+            {
+                const childDepth      = currentNode.depth + 1;
+                const childHalfWidth  = this.width / Math.pow(2, childDepth);
+                const childHalfHeight = this.height / Math.pow(2, childDepth);
+
+                // This is a branch node. Check the children.
+                let ul = this.quadNodes.get(currentNode.firstChild + 0);       // Upper left child node
+                let ur = this.quadNodes.get(currentNode.firstChild + 1);       // Upper right child node
+                let lr = this.quadNodes.get(currentNode.firstChild + 2);       // Lower right child node
+                let ll = this.quadNodes.get(currentNode.firstChild + 3);       // Lower left child node
+
+                if(Intersects.AABBWithRectangle(aabb, ul.center[0], ul.center[1], childHalfWidth, childHalfHeight).result != IntersectionType.None)
+                {
+                    toTraverse.push(ul);
+                }
+
+                if(Intersects.AABBWithRectangle(aabb, ur.center[0], ur.center[1], childHalfWidth, childHalfHeight).result != IntersectionType.None)
+                {
+                    toTraverse.push(ur);
+                }
+
+                if(Intersects.AABBWithRectangle(aabb, lr.center[0], lr.center[1], childHalfWidth, childHalfHeight).result != IntersectionType.None)
+                {
+                    toTraverse.push(lr);
+                }
+
+                if(Intersects.AABBWithRectangle(aabb, ll.center[0], ll.center[1], childHalfWidth, childHalfHeight).result != IntersectionType.None)
                 {
                     toTraverse.push(ll);
                 }
@@ -298,6 +456,11 @@ class QuadTree extends SceneTree
         return false;
     }
 
+    /**
+     * Returns a list of all ObjectNodes that are chained to the specified ObjectNode index.
+     * 
+     * @param {*} firstIndex 
+     */
     _getObjectNodeList(firstIndex)
     {
         let objectNodes = [ this.objectNodes.get(firstIndex) ];
@@ -310,6 +473,18 @@ class QuadTree extends SceneTree
         }
 
         return objectNodes;
+    }
+
+    _buildSceneObjectList(leaf, sceneObjects)
+    {
+        let currentNode = this.objectNodes.get(leaf.firstChild);
+        sceneObjects.push(currentNode.objectId);
+
+        while(currentNode.next != -1)
+        {
+            currentNode = this.objectNodes.get(currentNode.next);
+            sceneObjects.push(currentNode.objectId);
+        }
     }
 
     _isLeaf(node)
