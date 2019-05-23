@@ -93,12 +93,16 @@ class PropertyBucket
      */
     remove(entryIndex)
     {
-        let start = (entryIndex * this.entrySize);
+        const start = entryIndex * this.entrySize;
+        const size  = this.entryCount * this.entrySize - this.entrySize;
 
         // Shift the entire contents to the left one entry
-        for(let i = start; i < this.entryCapacity; ++i)
+        for(let i = start; i < size; i += this.entrySize)
         {
-            this.entryData[i - this.entrySize] = this.entryData[i];
+            for(let j = 0; j < this.entrySize; ++j)
+            {
+                this.entryData[i + j] = this.entryData[i + j + this.entrySize];
+            }
         }
 
         this.entryCount--;
@@ -123,6 +127,7 @@ class PropertyBucket
     {
         // Set the value to the next open index
         this.set(this.entryCount++, value);
+        console.debug("entryCount = " + this.entryCount);
     }
 }
 

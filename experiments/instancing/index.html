@@ -10,6 +10,7 @@
         <script src="../../common/shaders/default_shaders.js"></script>
 
         <script src="../../common/utils.js"></script>
+        <script src="../../common/bounds.js"></script>
         <script src="../../common/vertex.js"></script>
         <script src="../../common/resources.js"></script>
         <script src="../../common/context.js"></script>
@@ -37,7 +38,7 @@
                 scene.renderer.camera.clearColor(0.098, 0.098, 0.196);
                 scene.renderer.camera.transform.translate(0.0, 0.0, 50.0);
 
-                for(let i = 0; i < 50000; ++i)
+                for(let i = 0; i < 3; ++i)
                 {
                     spawnQuad();
                 }
@@ -57,11 +58,10 @@
 
             function removeQuad()
             {
-                let lastSceneObject = scene.sceneObjects.pop();
-                
-                if(lastSceneObject != undefined)
+                for (let [id, sceneObject] of this.scene._sceneObjects) 
                 {
-                    lastSceneObject.dispose();
+                    this.scene.removeSceneObject(id);
+                    break;
                 }
             }
 
@@ -89,7 +89,7 @@
                     let value = Utils.clamp($("#param_objectcount").val(), 0, 500000);
                     $("#param_objectcount").val(value);
 
-                    let difference = (value - scene.sceneObjects.length);
+                    let difference = (value - scene._sceneObjects.size);
 
                     if(difference > 0)
                     {
@@ -156,7 +156,7 @@
                     </tr>
                     <tr>
                         <td>objects</td>
-                        <td><input id="param_objectcount" type="number" name="quantity" min="0" max="500000" value="50000"></td>
+                        <td><input id="param_objectcount" type="number" name="quantity" min="0" max="500000" value="3"></td>
                     </tr>
                 </table>
             </div>

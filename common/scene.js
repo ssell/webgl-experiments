@@ -67,12 +67,20 @@ class Scene
 
     removeSceneObject(id)
     {
-        this._sceneObjects.remove(id);
+        let sceneObject = this._sceneObjects.get(id);
+
+        if(!sceneObject)
+        {
+            return;
+        }
 
         if(this.sceneTree != null)
         {
-            this.sceneTree.remove(sceneObject);
+            this.sceneTree.remove(id);
         }
+
+        this._sceneObjects.delete(id);
+        sceneObject.dispose();
     }
 
     getSceneObject(id)

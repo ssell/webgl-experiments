@@ -2,7 +2,7 @@ class Renderer
 {
     constructor(canvasId)
     {
-        this.instanceSize = 1000;
+        this.instanceSize = 3;
 
         this.renderList = []
         this.renderMap  = new Map();

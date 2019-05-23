@@ -68,6 +68,11 @@ function handleDeleteClick(mousePos)
     const selected = scene.sceneTree.findIntersectionsRay(ray);
 
     console.log(selected.length);
+
+    if(selected.length != 0)
+    {
+        scene.removeSceneObject(selected[0].id);
+    }
 }
 
 $(document).ready(function()

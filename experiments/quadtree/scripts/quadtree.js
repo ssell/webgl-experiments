@@ -79,9 +79,9 @@ class QuadTree extends SceneTree
     }
 
     /**
-     * @param {SceneObject} sceneObject 
+     * @param {Number} sceneObjectId 
      */
-    remove(sceneObject)
+    remove(sceneObjectId)
     {
 
     }
