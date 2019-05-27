@@ -127,7 +127,6 @@ class PropertyBucket
     {
         // Set the value to the next open index
         this.set(this.entryCount++, value);
-        console.debug("entryCount = " + this.entryCount);
     }
 }
 
@@ -156,7 +155,7 @@ class MaterialBucketHolder
         for(let i = 0; i < this.properties.length; ++i)
         {
             let property = this.properties[i];
-            let buckets = this.propertyBuckets[i];
+            let buckets  = this.propertyBuckets[i];
 
             if(buckets.length <= instanceIndex)
             {
@@ -210,6 +209,8 @@ class MaterialBucketHolder
                     break;
             }
         }
+
+        return this.propertyBuckets[0][instanceIndex].entryCount;
     }
 
     add(renderable)
@@ -565,7 +566,7 @@ class Material extends Resource
         }
 
         // Find the location in the shader program
-        let location = -1;
+        let location = null;
 
         if(!this.instanced)
         {
@@ -576,9 +577,9 @@ class Material extends Resource
             location = this.context.gl.getAttribLocation(this.shader.shaderProgram, name);
         }
 
-        if(location === -1)
+        if(location === null)
         {
-            console.warn("Property '" + name + "' in material '" + this.name + "' defined with an invalid attribute location.");
+            console.warn("Property '" + name + "' in material '" + this.resourceName + "' defined with an invalid attribute location.");
             return false;
         }
 
@@ -710,7 +711,7 @@ class Material extends Resource
             return false;
         }
 
-        propertyBucket.bind(instanceIndex);
+        return propertyBucket.bind(instanceIndex);
     }
 
     /**

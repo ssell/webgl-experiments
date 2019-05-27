@@ -88,6 +88,14 @@ class Scene
         return this._sceneObjects.get(id);
     }
 
+    forEachSceneObject(func)
+    {
+        for (let [id, sceneObject] of this._sceneObjects)
+        {
+            func(sceneObject);
+        }
+    }
+
     static _nextId()
     {
         return this.nextId++;
@@ -142,7 +150,7 @@ class Scene
         materialDefaultInstanced.enableProperty("Color", [1.0, 1.0, 1.0, 1.0]);
         
         let materialFlash = new Material(this.renderer, "flash", "flash");
-        materialFlash.enableProperty("StartColor", [0.0, 0.0, 0.0, 1.0]);
+        materialFlash.enableProperty("StartColor", [0.0, 1.0, 0.0, 1.0]);
         materialFlash.enableProperty("EndColor", [1.0, 1.0, 1.0, 1.0]);
         
         let materialFlashInstanced = new Material(this.renderer, "flash_instanced", "flash_instanced", true);
@@ -194,7 +202,7 @@ class Scene
         this.lastFrameTime = elapsedTime;
 
         // Update each object
-        for (let [id, sceneObject] of this._sceneObjects) 
+        for (let [id, sceneObject] of this._sceneObjects)
         {
             sceneObject.update(this.deltaTime);
         }

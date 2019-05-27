@@ -38,7 +38,7 @@
                 scene.renderer.camera.clearColor(0.098, 0.098, 0.196);
                 scene.renderer.camera.transform.translate(0.0, 0.0, 50.0);
 
-                for(let i = 0; i < 3; ++i)
+                for(let i = 0; i < 50000; ++i)
                 {
                     spawnQuad();
                 }
@@ -74,10 +74,10 @@
                 {
                     let material = (this.checked === true ? "flash_instanced" : "flash");
 
-                    for(let i = 0; i < scene.sceneObjects.length; ++i)
+                    scene.forEachSceneObject(function(sceneObject)
                     {
-                        scene.sceneObjects[i].renderable.material = material;
-                    }
+                        sceneObject.renderable.material = material;
+                    });
 
                     scene.frameStats.flush();
                 });
@@ -156,7 +156,7 @@
                     </tr>
                     <tr>
                         <td>objects</td>
-                        <td><input id="param_objectcount" type="number" name="quantity" min="0" max="500000" value="3"></td>
+                        <td><input id="param_objectcount" type="number" name="quantity" min="0" max="500000" value="50000"></td>
                     </tr>
                 </table>
             </div>

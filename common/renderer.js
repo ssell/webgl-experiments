@@ -2,13 +2,12 @@ class Renderer
 {
     constructor(canvasId)
     {
-        this.instanceSize = 3;
-
-        this.renderList = []
-        this.renderMap  = new Map();
+        this.instanceSize = 1000;
+        this.renderList   = []
+        this.renderMap    = new Map();
         this.renderGroups = new Map();
-        this.context    = new Context(canvasId);
-        this.camera     = null;
+        this.context      = new Context(canvasId);
+        this.camera       = null;
     }
     
     drawScene(frameNumber, timeElapsed, delta)
@@ -111,14 +110,15 @@ class Renderer
         let leftToRender = count;
         let numInstances = Math.ceil(count / this.instanceSize);
         let triangles    = 0;
+        let instance     = 0;
 
-        for(let i = 0; i < numInstances; ++i)
+        while(leftToRender > 0)
         {
-            material.bindInstanced(mesh.resourceName, i);
-            triangles += mesh.renderInstanced((leftToRender >= this.instanceSize ? this.instanceSize : leftToRender));
+            let countBound = material.bindInstanced(mesh.resourceName, instance++);
+            triangles += mesh.renderInstanced((leftToRender >= countBound ? countBound : leftToRender));
             material.unbindInstanced();
 
-            leftToRender -= this.instanceSize;
+            leftToRender -= countBound;
         }
         
         return [numInstances, triangles];

@@ -30,8 +30,8 @@ const shader_flat_fs = shader_common_fs + glsl`
 `;
 
 const shader_flash_vs = shader_common_vs + glsl`
-    out vec4 StartColor;
-    out vec4 EndColor;
+    uniform vec4 StartColor;
+    uniform vec4 EndColor;
     out vec4 VertColor;
 
     void main()
