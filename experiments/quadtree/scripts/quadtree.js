@@ -71,6 +71,43 @@ class QuadTree extends SceneTree
     }
 
     /**
+     * Should be called once a frame (ideally at the end) so that 
+     * the scene tree can perform any clean up or reorganization.
+     */
+    tick()
+    {
+        // Iterate over all nodes. If a branch node has 4 empty leaf nodes, 
+        // then remove the leaf nodes and make the branch node a leaf.
+        for(let i = 0; i < this.quadNodes.length; ++i)
+        {
+            let node = this.quadNodes.get(i);
+
+            // If this is a branch
+            if(node.numElements == -1)
+            {
+                let numLeafChildren = 
+                    this.quadNodes.get(node.firstChild + 0).numElements +
+                    this.quadNodes.get(node.firstChild + 1).numElements +
+                    this.quadNodes.get(node.firstChild + 2).numElements +
+                    this.quadNodes.get(node.firstChild + 3).numElements;
+
+                // If none of the leaf node children of this branch contain any object references
+                if(numLeafChildren == 0)
+                {
+                    // Remove the leaf nodes and turn this branch into a leaf.
+                    this.quadNodes.remove(node.firstChild + 0);
+                    this.quadNodes.remove(node.firstChild + 1);
+                    this.quadNodes.remove(node.firstChild + 2);
+                    this.quadNodes.remove(node.firstChild + 3);
+
+                    node.firstChild  = -1;
+                    node.numElements = 0;
+                }
+            }
+        }
+    }
+
+    /**
      * @param {SceneObject} sceneObject 
      */
     add(sceneObject)
@@ -81,9 +118,57 @@ class QuadTree extends SceneTree
     /**
      * @param {Number} sceneObjectId 
      */
-    remove(sceneObjectId)
+    remove(sceneObject)
     {
+        // Find all the leafs which may contain references to this object
+        let leafNodes = this._findLeafsWhichIntersect(Intersects.AABBWithRectangle, sceneObject.aabb)
 
+        // Remove any references to this scene object
+        for(let i = 0; i < leafNodes.length; ++i)
+        {
+            if(leafNodes[i].numElements == 0)
+            {
+                continue;
+            }
+
+            let lastObjectNodeId = leafNodes[i].firstChild;
+            let currObjectNodeId = lastObjectNodeId;
+
+            // Iterate all object nodes in the linked list
+            while(currObjectNodeId != -1)
+            {
+                let lastObjectNode   = this.objectNodes.get(lastObjectNodeId);
+                let currObjectNode   = this.objectNodes.get(currObjectNodeId);
+                let nextObjectNodeId = currObjectNode.next;
+
+                // If this object node references the scene object
+                if(currObjectNodeId == sceneObject.id)
+                {
+                    // Remove the node and update leaf object count
+                    this.objectNodes.remove(currObjectNodeId);
+                    leafNodes.numElements--;
+
+                    // Update references to this object node
+                    if(lastObjectNodeId != currObjectNodeId)
+                    {
+                        // This is not the first object node in the leaf, so update last node's next
+                        lastObjectNode.next = nextObjectNodeId;
+                    }
+                    else
+                    {
+                        // This is the first object node in the leaf, update the leaf node's first child member
+                        leafNodes[i].firstChild = nextObjectNodeId;
+                        lastObjectNodeId = nextObjectNodeId;  // Next is now the new start so it is also the last node visited
+                    }
+                }
+                else
+                {
+                    lastObjectNodeId = currObjectNodeId;
+                }
+
+                currObjectNodeId = nextObjectNodeId;
+            }
+        }
     }
     
     /**
@@ -525,7 +610,7 @@ class QuadTreeDebugObject extends SceneObject
     {
         this.totalDelta += delta;
 
-        if(this.totalDelta < 1.0)
+        if(this.totalDelta < 0.1)
         {
             return;
         }

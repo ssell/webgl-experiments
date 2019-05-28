@@ -76,7 +76,7 @@ class Scene
 
         if(this.sceneTree != null)
         {
-            this.sceneTree.remove(id);
+            this.sceneTree.remove(sceneObject);
         }
 
         this._sceneObjects.delete(id);
@@ -217,6 +217,9 @@ class Scene
 
         // Draw the scene
         let drawStats = this.renderer.drawScene(0, this.frameStats.timeElapsed, this.deltaTime);
+
+        // Update the scene tree
+        this.sceneTree.tick();
 
         // Update frame stats
         this.frameStats.endFrame(this.deltaTime, drawStats[0], drawStats[1]);
