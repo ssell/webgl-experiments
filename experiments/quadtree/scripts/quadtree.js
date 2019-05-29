@@ -74,7 +74,7 @@ class QuadTree extends SceneTree
      * Should be called once a frame (ideally at the end) so that 
      * the scene tree can perform any clean up or reorganization.
      */
-    tick()
+    refresh()
     {
         // Iterate over all nodes. If a branch node has 4 empty leaf nodes, 
         // then remove the leaf nodes and make the branch node a leaf.
@@ -121,7 +121,7 @@ class QuadTree extends SceneTree
     remove(sceneObject)
     {
         // Find all the leafs which may contain references to this object
-        let leafNodes = this._findLeafsWhichIntersect(Intersects.AABBWithRectangle, sceneObject.aabb)
+        let leafNodes = this._findLeafsWhichIntersect(Intersects.AABBWithRectangle, sceneObject.renderable.aabb)
 
         // Remove any references to this scene object
         for(let i = 0; i < leafNodes.length; ++i)
@@ -146,7 +146,7 @@ class QuadTree extends SceneTree
                 {
                     // Remove the node and update leaf object count
                     this.objectNodes.remove(currObjectNodeId);
-                    leafNodes.numElements--;
+                    leafNodes[i].numElements--;
 
                     // Update references to this object node
                     if(lastObjectNodeId != currObjectNodeId)

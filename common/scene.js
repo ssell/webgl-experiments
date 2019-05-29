@@ -219,7 +219,7 @@ class Scene
         let drawStats = this.renderer.drawScene(0, this.frameStats.timeElapsed, this.deltaTime);
 
         // Update the scene tree
-        this.sceneTree.tick();
+        this.sceneTree.refresh();
 
         // Update frame stats
         this.frameStats.endFrame(this.deltaTime, drawStats[0], drawStats[1]);
