@@ -188,6 +188,14 @@ class FixedList
         this.occupied[index] = false;
     }
 
+    removeGroup(indices)
+    {
+        for(let i = 0; i < indices.length; ++i)
+        {
+            this.remove(indices[i]);
+        }
+    }
+
     get(index)
     {
         return this.contents[index];

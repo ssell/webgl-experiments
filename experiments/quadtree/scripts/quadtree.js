@@ -25,6 +25,10 @@ class QuadTreeObjectNode
 {
     constructor(objectId)
     {
+        if(objectId == undefined)
+        {
+            console.error("Its happening!");
+        }
         this.objectId = objectId;   // Index of the referenced SceneObject
         this.next    = -1;          // Index of the next object node in the leaf
     }
@@ -80,46 +84,71 @@ class QuadTree extends SceneTree
         // then remove the leaf nodes and make the branch node a leaf.
         for(let i = 0; i < this.quadNodes.count; ++i)
         {
-            let node = this.quadNodes.get(i);
+            let branchNode = this.quadNodes.get(i);
 
             // If this is a branch
-            if(node.numElements == -1)
+            if(branchNode.numElements == -1)
             {
-                let leafUL = this.quadNodes.get(node.firstChild + 0);
-                let leafUR = this.quadNodes.get(node.firstChild + 1);
-                let leafLR = this.quadNodes.get(node.firstChild + 2);
-                let leafLL = this.quadNodes.get(node.firstChild + 3);
+                let childUL = this.quadNodes.get(branchNode.firstChild + 0);
+                let childUR = this.quadNodes.get(branchNode.firstChild + 1);
+                let childLR = this.quadNodes.get(branchNode.firstChild + 2);
+                let childLL = this.quadNodes.get(branchNode.firstChild + 3);
+
+                if(childUL.numElements == -1 || childUR.numElements == -1 || childLR.numElements == -1 || childLL.numElements == -1)
+                {
+                    // One of the children is another branch
+                    continue;
+                }
                 
-                let numLeafChildren = (leafUL.numElements >= 0 ? leafUL.numElements : 0) + 
-                                      (leafUR.numElements >= 0 ? leafUR.numElements : 0) +
-                                      (leafLR.numElements >= 0 ? leafLR.numElements : 0) +
-                                      (leafLL.numElements >= 0 ? leafLL.numElements : 0);
+                let numLeafChildren = childUL.numElements + childUR.numElements + childLR.numElements + childLL.numElements;
 
                 // If all of the leaf objects could be combined into one
                 if(numLeafChildren <= this.elementsPerNode)
                 {
-                    node.numElements = numLeafChildren;
+                    this.quadNodes.remove(branchNode.firstChild + 0);
+                    this.quadNodes.remove(branchNode.firstChild + 1);
+                    this.quadNodes.remove(branchNode.firstChild + 2);
+                    this.quadNodes.remove(branchNode.firstChild + 3);
 
                     if(numLeafChildren == 0)
                     {
-                        node.firstChild  = -1;
+                        branchNode.firstChild = -1;
+                        branchNode.numElements = 0;
                     }
                     else
                     {
-                        let children = this._getObjectNodeIdList(this.quadNodes.get(node.firstChild + 0).firstChild)
-                               .concat(this._getObjectNodeIdList(this.quadNodes.get(node.firstChild + 1).firstChild))
-                               .concat(this._getObjectNodeIdList(this.quadNodes.get(node.firstChild + 2).firstChild))
-                               .concat(this._getObjectNodeIdList(this.quadNodes.get(node.firstChild + 3).firstChild));
+                        // Get list of all object nodes referenced by the child leaf nodes
+                        let childObjectNodes = this._getObjectNodeIdList(childUL.firstChild)
+                               .concat(this._getObjectNodeIdList(childUR.firstChild))
+                               .concat(this._getObjectNodeIdList(childLR.firstChild))
+                               .concat(this._getObjectNodeIdList(childLL.firstChild));
 
-                        children = [...new Set(children)];
+                        // Get list of all unique scene objects referenced by the object nodes
+                        let sceneObjects = new Set();
+                        for(let j = 0; j < childObjectNodes.length; ++j) { sceneObjects.add(this.objectNodes.get(childObjectNodes[j]).objectId); }
+                        sceneObjects = Array.from(sceneObjects);
 
-                        for(let i = 0; i < numLeafChildren - 1; ++i)
+                        // Remove the old object nodes and add new ones
+                        this.objectNodes.removeGroup(childObjectNodes);
+
+                        let newObjectNodes = [];
+
+                        for(let j = 0; j < sceneObjects.length; ++j)
                         {
-                            this.objectNodes.get(children[i]).next = children[i + 1];
+                            newObjectNodes.push(new QuadTreeObjectNode(sceneObjects[j]));
                         }
 
-                        this.objectNodes.get(children[numLeafChildren - 1]).next = -1;
-                        node.firstChild = children[0];
+                        let firstChild = this.objectNodes.addGroup(newObjectNodes);
+
+                        // Build the object node linked list
+                        for(let j = 0; j < sceneObjects.length - 1; ++j)
+                        {
+                            this.objectNodes.get(firstChild + j).next = firstChild + j + 1;
+                        }
+
+                        // Turn the branch node into a leaf
+                        branchNode.firstChild = firstChild;                        
+                        branchNode.numElements = newObjectNodes.length;
                     }
                 }
             }
@@ -648,7 +677,7 @@ class QuadTreeDebugObject extends SceneObject
     {
         this.totalDelta += delta;
 
-        if(this.totalDelta < 0.1)
+        if(this.totalDelta < 0.05)
         {
             return;
         }
