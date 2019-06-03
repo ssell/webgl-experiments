@@ -31,7 +31,11 @@ function setupScene()
     createQuadTreeVisualizerMaterial();
     scene.addSceneObject(new QuadTreeDebugObject(scene.renderer, scene.sceneTree));
 
-    //spawnQuad();
+    // Begin the scene with 10 quads in it to display the QT structure
+    for(let i = 0; i < 10; ++i)
+    {
+        spawnQuad();
+    }
 
     scene.start();
 }
