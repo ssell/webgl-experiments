@@ -4,11 +4,15 @@
  */
 class Scene
 {
+    // Use map with integer keys as they traverse faster than dictionaries
+    // https://jsperf.com/dict-map-iteration-performance
+    _sceneObjects = new Map();
+
     constructor(canvasId)
     {
         this.renderer      = new Renderer(canvasId);
         this.frameStats    = new FrameStats(this.renderer.context);
-        this.sceneObjects  = [];
+        this.sceneTree     = null;
         this.lastFrameTime = 0.0;
         this.deltaTime     = 0.0;
         this.shouldRun     = true;
@@ -25,6 +29,76 @@ class Scene
         this.buildDefaultMeshes();
 
         this.renderer.camera = new Camera(this.renderer); 
+    }
+
+    setSceneTree(sceneTree)
+    {
+        if(sceneTree === null)
+        {
+            return;
+        }
+
+        if(this.sceneTree != null)
+        {
+            this.sceneTree.destroy();
+        }
+
+        this.sceneTree = sceneTree;
+        this.sceneTree.setScene(this);
+
+        for(let[id, sceneObject] of this._sceneObjects)
+        {
+            this.sceneTree.add(sceneObject);
+        }
+    }
+
+    addSceneObject(sceneObject)
+    {
+        let id = Scene._nextId();
+        sceneObject.id = id;
+        
+        this._sceneObjects.set(id, sceneObject);
+        
+        if(this.sceneTree != null)
+        {
+            this.sceneTree.add(sceneObject);
+        }
+    }
+
+    removeSceneObject(id)
+    {
+        let sceneObject = this._sceneObjects.get(id);
+
+        if(!sceneObject)
+        {
+            return;
+        }
+
+        if(this.sceneTree != null)
+        {
+            this.sceneTree.remove(sceneObject);
+        }
+
+        this._sceneObjects.delete(id);
+        sceneObject.dispose();
+    }
+
+    getSceneObject(id)
+    {
+        return this._sceneObjects.get(id);
+    }
+
+    forEachSceneObject(func)
+    {
+        for (let [id, sceneObject] of this._sceneObjects)
+        {
+            func(sceneObject);
+        }
+    }
+
+    static _nextId()
+    {
+        return this.nextId++;
     }
 
     /**
@@ -76,7 +150,7 @@ class Scene
         materialDefaultInstanced.enableProperty("Color", [1.0, 1.0, 1.0, 1.0]);
         
         let materialFlash = new Material(this.renderer, "flash", "flash");
-        materialFlash.enableProperty("StartColor", [0.0, 0.0, 0.0, 1.0]);
+        materialFlash.enableProperty("StartColor", [0.0, 1.0, 0.0, 1.0]);
         materialFlash.enableProperty("EndColor", [1.0, 1.0, 1.0, 1.0]);
         
         let materialFlashInstanced = new Material(this.renderer, "flash_instanced", "flash_instanced", true);
@@ -128,24 +202,28 @@ class Scene
         this.lastFrameTime = elapsedTime;
 
         // Update each object
-        for(var i = 0; i < this.sceneObjects.length; ++i)
+        for (let [id, sceneObject] of this._sceneObjects)
         {
-            var sceneObject = this.sceneObjects[i];
             sceneObject.update(this.deltaTime);
         }
 
-        // Prerender each object
-        for(var i = 0; i < this.sceneObjects.length; ++i)
+        for(let [id, sceneObject] of this._sceneObjects)
         {
-            if(this.sceneObjects[i].visible)
+            if(sceneObject.visible)
             {
-                this.sceneObjects[i].preRender();
+                sceneObject.preRender();
             }
         }
 
         // Draw the scene
         let drawStats = this.renderer.drawScene(0, this.frameStats.timeElapsed, this.deltaTime);
 
+        // Update the scene tree
+        if(this.sceneTree != null)
+        {
+            this.sceneTree.refresh();
+        }
+        
         // Update frame stats
         this.frameStats.endFrame(this.deltaTime, drawStats[0], drawStats[1]);
         this.frameStats.report();
@@ -157,3 +235,5 @@ class Scene
         }
     }
 }
+
+Scene.nextId = 0;

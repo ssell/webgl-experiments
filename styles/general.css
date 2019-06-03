@@ -47,14 +47,6 @@ canvas
     display: inline;
 }
 
-#framestatsa
-{
-    width: 800px;
-    margin: 0 auto;
-    text-align: center;
-    color: #445A96;
-}
-
 table
 {
     font-size: 10px;
@@ -104,4 +96,14 @@ input
     width: 10px;
     margin-left: 0;
     background-color: transparent;
+}
+
+button
+{
+    border: none;
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+    text-align: center;
+    background-color: rgba(55, 55, 90, 0.9);
 }

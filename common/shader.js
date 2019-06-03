@@ -100,6 +100,11 @@ class Shader extends Resource
         this.viewMatrix       = this.context.gl.getUniformLocation(this.shaderProgram, "ViewMatrix");
         this.projectionMatrix = this.context.gl.getUniformLocation(this.shaderProgram, "ProjectionMatrix");
         
+        this.sampler0         = this.context.gl.getUniformLocation(this.shaderProgram, "sampler0");
+        this.sampler1         = this.context.gl.getUniformLocation(this.shaderProgram, "sampler1");
+        this.sampler2         = this.context.gl.getUniformLocation(this.shaderProgram, "sampler2");
+        this.sampler3         = this.context.gl.getUniformLocation(this.shaderProgram, "sampler3");
+        
         this.vertexPosition = this.context.gl.getAttribLocation(this.shaderProgram, "VertexPosition");
         this.vertexColor    = this.context.gl.getAttribLocation(this.shaderProgram, "VertexColor");
         this.vertexNormal   = this.context.gl.getAttribLocation(this.shaderProgram, "VertexNormal");

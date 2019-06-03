@@ -15,8 +15,10 @@ class Context
 
         if(this.gl === null)
         {
-            alert("Unable to initialize WebGL. Your browser or machine may not support it.");
+            alert("Error: Your browser does not support use of WebGL 2 Contexts. For more information, see:\n\nhttps://developer.mozilla.org/en-US/docs/Web/API/WebGL2RenderingContext#Browser_compatibility");
         }
+
+        this.enableExtensions();
 
         this.gl.clearDepth(1.0);
         this.gl.enable(this.gl.DEPTH_TEST);
@@ -25,6 +27,26 @@ class Context
         this.resources = new ResourceManager();
         this.viewMatrix = mat4.create();
         this.projectionMatrix = mat4.create();
+    }
+
+    enableExtensions()
+    {
+        var extensions = this.gl.getSupportedExtensions();
+
+        console.info("Supported WebGL extensions:");
+
+        for(let i = 0; i < extensions.length; ++i)
+        {
+            console.info("\t" + extensions[i]);
+        }
+
+        var extColorBufferFloat = this.gl.getExtension("OES_texture_float_linear");
+
+        if (!extColorBufferFloat) 
+        {
+            alert('Warning: Your browser does not support linear sampling of floating-point textures. For more information, see:\n\nhttps://developer.mozilla.org/en-US/docs/Web/API/OES_texture_float_linear#Browser_compatibility');
+            return;
+        }
     }
 
     /**

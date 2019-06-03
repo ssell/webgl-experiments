@@ -5,7 +5,17 @@ class SceneTree
 {
     constructor()
     {
+        this.scene = null;
+    }
 
+    destroy()
+    {
+
+    }
+
+    setScene(scene)
+    {
+        this.scene = scene;
     }
 
     add(sceneObject)
@@ -59,92 +69,5 @@ class SceneList extends SceneTree
     update()
     {
         
-    }
-}
-
-/**
- * Represents an individual node within the `QuadTree`.
- * 
- * This can represent either a branch node, where `firstChild` points to the index of the first child `QuadTreeNode`,
- * or it can represent a leaf node, where `firstChild` points to the index of the first child `QuadTreeElementNode`.
- */
-class QuadTreeNode
-{
-    constructor()
-    {
-        this.firstChild = -1;    // Points to either the first child QuadTreeNode index (branch) or to the first child QuadTreeObjectNode (leaf).
-        this.numElements = 0;    // Number of elements referenced by this node. If 0, this is a branch. If > 0, this is a leaf.
-    }
-}
-
-/**
- * Represents an object stored in a leaf `QuadTreeNode`.
- * 
- * Each `QuadTreeObjectNode` references a `SceneObject` by it's index in the parent `SceneTree`.
- * Multiple `QuadTreeObjectNode` may refer to the same `SceneObject` if it happens to occupy multiple quadrants at the same time.
- */
-class QuadTreeObjectNode
-{
-    constructor()
-    {
-        this.elementIndex = -1;   // Index of the referenced SceneObject
-        this.next = -1;           // Index of the next object node in the leaf
-    }
-}
-
-/**
- * A simple QuadTree using indexed nodes and SceneObjects.
- * 
- * Example QuadTree with 5 objects (2 in upper-left, 3 in lower-left:
- * 
- *     QTN = QuadTreeNode
- *     QON = QuadTreeObjectNode
- * 
- *  D:0                            QuadTreeNode:0   (Root)                
- *                                        │                               
- *  D:1                 ┌───────────┬───────────┬───────────┐             
- *                     QTN:1       QTN:2       QTN:3       QTN:4          
- *                      │                                   │             
- *  D:2     ┌───────┬───────┬───────┐           ┌───────┬───────┬───────┐ 
- *         QON:0   QON:1   N/A     N/A         QON:2   QON:3   QON:4   N/A
- * 
- */
-class QuadTree extends SceneTree
-{
-    constructor(width, height, maxDepth = 3)
-    {
-        super();
-
-        this.width        = width;
-        this.height       = height;
-        this.maxDepth     = maxDepth;
-        this.sceneObjects = [];
-        this.quadNodes    = [ new QuadTreeNode() ];
-    }
-
-    add(sceneObject)
-    {
-        let index = this.sceneObjects.indexOf(sceneObject);
-        
-        if(index == -1)
-        {
-            this.sceneObjects.push(sceneObject);
-            this._insertObject(sceneObject);
-        }
-    }
-
-    remove(sceneObject)
-    {
-
-    }
-
-    update()
-    {
-
-    }
-
-    _insertObject(sceneObject)
-    {
-
     }
 }
