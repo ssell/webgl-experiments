@@ -26,4 +26,8 @@ In addition to the ideas displayed in the various demos, this repository houses 
 
 Demonstrates the use of instancing to render large numbers of objects more efficiently.
 
+### [`experiments/quadtree`](experiments/quadtree)
+
+Demonstrates a QuadTree implementation which can be used to make more efficient scene queries.
+
 ### `...`
