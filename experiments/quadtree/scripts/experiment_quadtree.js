@@ -1,3 +1,7 @@
+const qtDimension = 50.0;
+const qtMaxDepth  = 6;
+const quadMaxPos  = 24.5;    // Max position of a quad on x or y axis. Account for quad width to not let it extend beyond QT edge.
+                             // The QT will still function if it extends beyond, but we prevent it for visual purposes.
 var scene = null;
 
 function createQuadTreeVisualizerMaterial()
@@ -22,7 +26,7 @@ function setupScene()
 {
     scene = new Scene("glCanvas");
 
-    scene.setSceneTree(new QuadTree(50, 50, 0, 0, 6));
+    scene.setSceneTree(new QuadTree(qtDimension, qtDimension, 0.0, 0.0, qtMaxDepth));
     scene.setup();
     
     scene.renderer.camera.clearColor(0.098, 0.098, 0.196);
@@ -40,7 +44,7 @@ function setupScene()
     scene.start();
 }
 
-function spawnQuad(x = Utils.getRandom(-25, 25), y = Utils.getRandom(-25, 25))
+function spawnQuad(x = Utils.getRandom(-quadMaxPos, quadMaxPos), y = Utils.getRandom(-quadMaxPos, quadMaxPos))
 {
     let quad = new QuadObject(scene.renderer);
     quad.translate(x, y, 0);
@@ -63,7 +67,7 @@ function getMousePos(canvas, evt) {
 function handleSpawnClick(mousePos)
 {
     const worldPos = scene.renderer.camera.screenToWorld(mousePos.x, mousePos.y, -scene.renderer.camera.transform.position[2]);
-    spawnQuad(Utils.clamp(worldPos[0], -24.5, 24.5), Utils.clamp(worldPos[1], -24.5, 24.5));
+    spawnQuad(Utils.clamp(worldPos[0], -quadMaxPos, quadMaxPos), Utils.clamp(worldPos[1], -quadMaxPos, quadMaxPos));
 }
 
 function handleDeleteClick(mousePos)
@@ -75,7 +79,20 @@ function handleDeleteClick(mousePos)
 
     if(selected.length != 0)
     {
-        scene.removeSceneObject(selected[0].id);
+        if(selected[0].id == 0)
+        {
+            // In this scene, object 0 will always be the QuadTreeDebugObject which visualizes the tree.
+            // Obviously we do not want to allow deletion of this object, so prevent it here.
+            if(selected.length > 1)
+            {
+                // Instead, delete the next selected object
+                scene.removeSceneObject(selected[1].id);
+            }
+        }
+        else
+        {
+            scene.removeSceneObject(selected[0].id);
+        }
     }
 }
 

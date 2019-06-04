@@ -31,3 +31,9 @@ Demonstrates the use of instancing to render large numbers of objects more effic
 Demonstrates a QuadTree implementation which can be used to make more efficient scene queries.
 
 ### `...`
+
+## Contact
+
+Feel free to contact me with any questions or comments using the contact information listed at:
+
+* https://www.vertexfragment.com/
