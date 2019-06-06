@@ -4,14 +4,13 @@
  */
 class Transform
 {
-    _position    = [0.0, 0.0, 0.0];
-    _scale       = [1.0, 1.0, 1.0];
-    _rotation    = [0.0, 0.0, 0.0, 1.0];
-    _modelMatrix = mat4.create();
-
     constructor()
     {
-        this.mmDirty  = false;
+        this._position    = [0.0, 0.0, 0.0];
+        this._scale       = [1.0, 1.0, 1.0];
+        this._rotation    = [0.0, 0.0, 0.0, 1.0];
+        this._modelMatrix = mat4.create();
+        this.mmDirty      = false;
     }
 
     set position(value)

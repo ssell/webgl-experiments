@@ -4,12 +4,12 @@
  */
 class Scene
 {
-    // Use map with integer keys as they traverse faster than dictionaries
-    // https://jsperf.com/dict-map-iteration-performance
-    _sceneObjects = new Map();
-
     constructor(canvasId)
     {
+        // Use map with integer keys as they traverse faster than dictionaries
+        // https://jsperf.com/dict-map-iteration-performance
+        this._sceneObjects = new Map();
+
         this.renderer      = new Renderer(canvasId);
         this.frameStats    = new FrameStats(this.renderer.context);
         this.sceneTree     = null;

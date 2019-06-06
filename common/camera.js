@@ -4,16 +4,14 @@
  */
 class Camera extends SceneObject
 {
-    _fov    = 45 * Math.PI / 180;
-    _aspect = 0.0;
-    _near   = 0.1;
-    _far    = 500.0;
-
     constructor(renderer)
     {
         super(renderer);
 
+        this._fov    = 45 * Math.PI / 180;
         this._aspect = this.renderable.renderer.context.gl.canvas.clientWidth / this.renderable.renderer.context.gl.canvas.clientHeight;
+        this._near   = 0.1;
+        this._far    = 500.0;
         this.rebuildProjection();
     }
 

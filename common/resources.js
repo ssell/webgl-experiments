@@ -8,10 +8,9 @@ var ResourceType =
 
 class ResourceManager
 {
-    _resources = [];
-
     constructor()
     {
+        this._resources = [];
         this.defaultMesh              = "quad";
         this.defaultMaterial          = "default";
         this.defaultInstancedMaterial = "default_instanced";
