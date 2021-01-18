@@ -154,11 +154,11 @@ class QuadObject extends SceneObject
 
 class FlashingQuad extends QuadObject
 {
-    constructor(renderer, startColor = [0.0, 1.0, 0.0], endColor = [0.0, 0.0, 1.0])
+    constructor(renderer, startColor = [0.0, 1.0, 0.0], endColor = [0.0, 0.0, 1.0], instanced = true)
     {
         super(renderer);
 
-        this.renderable.material = "flash_instanced";
+        this.renderable.material = (instanced === true ? "flash_instanced" : "flash");
 
         this.renderable.materialProps.setPropertyByName("StartColor", [startColor[0], startColor[1], startColor[2], 1.0]);
         this.renderable.materialProps.setPropertyByName("EndColor", [endColor[0], endColor[1], endColor[2], 1.0]);

@@ -29,6 +29,7 @@
         <!-- Builds a scene with 50,000 independently moving and flashing quads in ~25 lines. -->
         <script type="text/javascript">
             var scene = null;
+            var useInstancing = true;
 
             function setupScene()
             {
@@ -51,7 +52,7 @@
                 let startColor = Utils.getRandomColor();
                 let endColor   = Utils.getRandomColor();
 
-                let quad = new FlashingQuad(scene.renderer, startColor, endColor);
+                let quad = new FlashingQuad(scene.renderer, startColor, endColor, useInstancing);
                 quad.translate(Utils.getRandom(-25, 25), Utils.getRandom(-25, 25), (Utils.getRandom(-75, 0)));
                 scene.addSceneObject(quad);
             }
@@ -72,7 +73,8 @@
                 // Toggle usage of the instanced material on and off
                 $("#enable_instancing").change(function()
                 {
-                    let material = (this.checked === true ? "flash_instanced" : "flash");
+                    useInstancing = this.checked;
+                    let material = (useInstancing === true ? "flash_instanced" : "flash");
 
                     scene.forEachSceneObject(function(sceneObject)
                     {
